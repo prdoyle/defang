@@ -33,7 +33,7 @@ test {
 jar {
 	manifest {
 		attributes(
-				'Premain-Class': 'works.bosk.defang.agent.Agent',
+				'Premain-Class': 'works.bosk.defang.Agent',
 				'Can-Redefine-Classes': 'true',
 				'Can-Retransform-Classes': 'true'
 		)

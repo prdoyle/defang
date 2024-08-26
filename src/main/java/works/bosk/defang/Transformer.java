@@ -1,5 +1,5 @@
 
-package works.bosk.defang.transformer;
+package works.bosk.defang;
 
 import java.lang.instrument.ClassFileTransformer;
 import java.security.ProtectionDomain;
