@@ -4,6 +4,7 @@ import java.util.EnumSet;
 import java.util.Set;
 
 public enum Entitlement {
+	FILES,
 	REFLECTION;
 
 	private static final ThreadLocal<Set<Entitlement>> ACTIVE_PERMISSIONS = ThreadLocal.withInitial(() -> EnumSet.noneOf(Entitlement.class));

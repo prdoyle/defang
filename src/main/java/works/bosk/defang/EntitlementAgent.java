@@ -1,6 +1,7 @@
 
 package works.bosk.defang;
 
+import java.io.File;
 import java.lang.instrument.Instrumentation;
 import java.lang.instrument.UnmodifiableClassException;
 import java.lang.reflect.Method;
@@ -12,7 +13,7 @@ import org.objectweb.asm.Type;
 public class EntitlementAgent {
 	public static void premain(String agentArgs, Instrumentation inst) throws UnmodifiableClassException {
 		inst.addTransformer(new EntitlementTransformer(scanPolicies(Policies.class)), true);
-		inst.retransformClasses(Entitlement.class, Class.class);
+		inst.retransformClasses(File.class);
 	}
 
 	static Map<MethodKey, Entitlement> scanPolicies(Class<?> policyClass) {

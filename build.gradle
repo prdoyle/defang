@@ -27,7 +27,8 @@ dependencies {
 test {
 	dependsOn(jar)
 	useJUnitPlatform()
-	jvmArgs /*"--patch-module java.base=${jar.archiveFile.get().asFile}",*/ "-javaagent:${jar.archiveFile.get().asFile}"
+//	jvmArgs "--patch-module java.base=${jar.archiveFile.get().asFile}"
+	jvmArgs "-javaagent:${jar.archiveFile.get().asFile}"
 }
 
 jar {
