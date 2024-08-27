@@ -27,7 +27,7 @@ public enum Entitlement {
 
 	public static void checkEntitlement(String entitlement) {
 		if (!ACTIVE_PERMISSIONS.get().contains(Entitlement.valueOf(entitlement))) {
-			throw new IllegalArgumentException("Missing entitlement: " + entitlement);
+			throw new IllegalStateException("Missing entitlement: " + entitlement);
 		}
 	}
 }

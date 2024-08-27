@@ -66,7 +66,7 @@ public class EntitlementTransformer implements ClassFileTransformer {
 		@Override
 		public void visitCode() {
 			mv.visitLdcInsn(requirement.toString());
-			Method method = GOT_HERE;
+			Method method = SYSTEM_GC;
 			mv.visitMethodInsn(
 				Opcodes.INVOKESTATIC,
 				Type.getInternalName(method.getDeclaringClass()),

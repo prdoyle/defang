@@ -27,13 +27,13 @@ dependencies {
 test {
 	dependsOn(jar)
 	useJUnitPlatform()
-	jvmArgs "-javaagent:${jar.archiveFile.get().asFile}"
+	jvmArgs /*"--patch-module java.base=${jar.archiveFile.get().asFile}",*/ "-javaagent:${jar.archiveFile.get().asFile}"
 }
 
 jar {
 	manifest {
 		attributes(
-				'Premain-Class': 'works.bosk.defang.Agent',
+				'Premain-Class': 'works.bosk.defang.EntitlementAgent',
 				'Can-Redefine-Classes': 'true',
 				'Can-Retransform-Classes': 'true'
 		)
