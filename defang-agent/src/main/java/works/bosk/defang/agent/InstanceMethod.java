@@ -1,4 +1,6 @@
-package works.bosk.defang.api;
+package works.bosk.defang.agent;
+
+import works.bosk.defang.api.Entitlement;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;

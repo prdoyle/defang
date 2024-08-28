@@ -1,6 +1,6 @@
 package works.bosk.defang.agent.config;
 
-import works.bosk.defang.api.InstanceMethod;
+import works.bosk.defang.agent.InstanceMethod;
 
 import java.io.File;
 

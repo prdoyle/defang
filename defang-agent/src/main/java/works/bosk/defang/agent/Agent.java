@@ -4,7 +4,6 @@ import org.objectweb.asm.Type;
 import works.bosk.defang.agent.config.FilesystemMethods;
 import works.bosk.defang.agent.config.ReflectionMethods;
 import works.bosk.defang.api.Entitlement;
-import works.bosk.defang.api.InstanceMethod;
 
 import java.io.File;
 import java.io.IOException;
