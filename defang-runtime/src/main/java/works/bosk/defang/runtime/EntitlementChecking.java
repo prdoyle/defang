@@ -37,8 +37,8 @@ public class EntitlementChecking {
         }
     }
 
-    public static void checkEntitlement(String entitlement) {
-        if (isActive.get() && !ACTIVE_ENTITLEMENTS.get().contains(Entitlement.valueOf(entitlement))) {
+    public static void checkEntitlement(Entitlement entitlement) {
+        if (isActive.get() && !ACTIVE_ENTITLEMENTS.get().contains(entitlement)) {
             throw new NotEntitledException("Missing entitlement: " + entitlement);
         }
     }

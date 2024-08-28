@@ -24,12 +24,12 @@ public class Agent {
 	public static void premain(String agentArgs, Instrumentation inst) throws UnmodifiableClassException, IOException {
 		var jarsString = System.getProperty("defang.runtimeJars");
 		if (jarsString != null) {
-            for (var jar: jarsString.split(File.pathSeparator)) {
+			for (var jar: jarsString.split(File.pathSeparator)) {
 				inst.appendToBootstrapClassLoaderSearch(new JarFile(jar));
 			}
 		}
 		var scanResults = scanConfig(
-			ReflectionMethods.class, FilesystemMethods.class
+				ReflectionMethods.class, FilesystemMethods.class
 		);
 		inst.addTransformer(new Transformer(scanResults.entitlements), true);
 		inst.retransformClasses(scanResults.classesToRescan.toArray(new Class[0]));

@@ -43,9 +43,6 @@ public class Transformer implements ClassFileTransformer {
 
 		@Override
 		public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
-			if (className.equals("java/io/File")) {
-				System.out.println("We're doing a File method");
-			}
 			MethodVisitor mv = super.visitMethod(access, name, descriptor, signature, exceptions);
 			MethodKey key = new MethodKey(className, name, descriptor);
 			Entitlement requirement = entitlements.get(key);
@@ -66,7 +63,12 @@ public class Transformer implements ClassFileTransformer {
 
 		@Override
 		public void visitCode() {
-			mv.visitLdcInsn(requirement.toString());
+			mv.visitFieldInsn(
+				Opcodes.GETSTATIC,
+				Type.getInternalName(Entitlement.class),
+				requirement.toString(),
+				Type.getDescriptor(Entitlement.class));
+
 			Method method = CHECK_ENTITLEMENT;
 			mv.visitMethodInsn(
 				Opcodes.INVOKESTATIC,
@@ -74,16 +76,16 @@ public class Transformer implements ClassFileTransformer {
 				method.getName(),
 				Type.getMethodDescriptor(method),
 				false);
+
 			super.visitCode();
 		}
 	}
 
-	private static final Method CHECK_ENTITLEMENT, SYSTEM_GC;
+	private static final Method CHECK_ENTITLEMENT;
 
 	static {
 		try {
-			CHECK_ENTITLEMENT = EntitlementChecking.class.getDeclaredMethod("checkEntitlement", String.class);
-			SYSTEM_GC = System.class.getDeclaredMethod("gc");
+			CHECK_ENTITLEMENT = EntitlementChecking.class.getDeclaredMethod("checkEntitlement", Entitlement.class);
 		} catch (NoSuchMethodException e) {
 			throw new IllegalStateException(e);
 		}
