@@ -1,4 +1,4 @@
-package works.bosk.defang;
+package works.bosk.defang.agent;
 
 import java.io.File;
 import org.junit.jupiter.api.Test;

@@ -1,0 +1,36 @@
+plugins {
+    id 'java'
+}
+
+group = 'works.bosk'
+version = '0.0.1-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.ow2.asm:asm:9.6'
+    implementation 'org.ow2.asm:asm-commons:9.6'
+    implementation project(":defang-runtime")
+    testImplementation platform('org.junit:junit-bom:5.10.0')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+}
+
+test {
+    dependsOn(jar)
+    useJUnitPlatform()
+//	jvmArgs "--patch-module java.base=${jar.archiveFile.get().asFile}"
+    jvmArgs "-javaagent:${jar.archiveFile.get().asFile}"
+}
+
+
+jar {
+    manifest {
+        attributes(
+                'Premain-Class': 'works.bosk.defang.agent.EntitlementAgent',
+                'Can-Redefine-Classes': 'true',
+                'Can-Retransform-Classes': 'true'
+        )
+    }
+}

@@ -1,5 +1,5 @@
 
-package works.bosk.defang;
+package works.bosk.defang.runtime;
 
 public record MethodKey(
 	String className,

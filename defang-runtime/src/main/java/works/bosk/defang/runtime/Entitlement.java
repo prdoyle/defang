@@ -1,4 +1,4 @@
-package works.bosk.defang;
+package works.bosk.defang.runtime;
 
 import java.util.EnumSet;
 import java.util.Set;

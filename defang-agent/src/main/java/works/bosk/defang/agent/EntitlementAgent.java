@@ -1,5 +1,10 @@
 
-package works.bosk.defang;
+package works.bosk.defang.agent;
+
+import org.objectweb.asm.Type;
+import works.bosk.defang.runtime.Entitlement;
+import works.bosk.defang.runtime.InstanceMethod;
+import works.bosk.defang.runtime.MethodKey;
 
 import java.io.File;
 import java.lang.instrument.Instrumentation;
@@ -8,7 +13,6 @@ import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Stream;
-import org.objectweb.asm.Type;
 
 public class EntitlementAgent {
 	public static void premain(String agentArgs, Instrumentation inst) throws UnmodifiableClassException {

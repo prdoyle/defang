@@ -1,4 +1,4 @@
-package works.bosk.defang;
+package works.bosk.defang.runtime;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;

@@ -19,24 +19,5 @@ repositories {
 dependencies {
 	testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.3'
 	testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.3'
-
-	implementation 'org.ow2.asm:asm:9.6'
-	implementation 'org.ow2.asm:asm-commons:9.6'
 }
 
-test {
-	dependsOn(jar)
-	useJUnitPlatform()
-//	jvmArgs "--patch-module java.base=${jar.archiveFile.get().asFile}"
-	jvmArgs "-javaagent:${jar.archiveFile.get().asFile}"
-}
-
-jar {
-	manifest {
-		attributes(
-				'Premain-Class': 'works.bosk.defang.EntitlementAgent',
-				'Can-Redefine-Classes': 'true',
-				'Can-Retransform-Classes': 'true'
-		)
-	}
-}

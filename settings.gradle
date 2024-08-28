@@ -1,1 +1,4 @@
 rootProject.name = 'defang'
+include 'defang-agent'
+include 'defang-runtime'
+

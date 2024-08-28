@@ -1,19 +1,19 @@
 
-package works.bosk.defang;
+package works.bosk.defang.agent;
 
-import java.lang.instrument.ClassFileTransformer;
-import java.lang.reflect.Method;
-import java.security.ProtectionDomain;
-import java.util.Map;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
+import works.bosk.defang.runtime.Entitlement;
+import works.bosk.defang.runtime.MethodKey;
 
-import static org.objectweb.asm.ClassWriter.COMPUTE_FRAMES;
-import static org.objectweb.asm.ClassWriter.COMPUTE_MAXS;
+import java.lang.instrument.ClassFileTransformer;
+import java.lang.reflect.Method;
+import java.security.ProtectionDomain;
+import java.util.Map;
 
 public class EntitlementTransformer implements ClassFileTransformer {
 	private final Map<MethodKey, Entitlement> entitlements;
@@ -26,7 +26,7 @@ public class EntitlementTransformer implements ClassFileTransformer {
 	public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined,
 							ProtectionDomain protectionDomain, byte[] classfileBuffer) {
 		ClassReader reader = new ClassReader(classfileBuffer);
-		ClassWriter writer = new ClassWriter(reader, COMPUTE_FRAMES | COMPUTE_MAXS);
+		ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
 		ClassVisitor visitor = new EntitlementClassVisitor(Opcodes.ASM9, writer, className);
 		reader.accept(visitor, 0);
 		return writer.toByteArray();
@@ -66,7 +66,7 @@ public class EntitlementTransformer implements ClassFileTransformer {
 		@Override
 		public void visitCode() {
 			mv.visitLdcInsn(requirement.toString());
-			Method method = GOT_HERE;
+			Method method = SYSTEM_GC;
 			mv.visitMethodInsn(
 				Opcodes.INVOKESTATIC,
 				Type.getInternalName(method.getDeclaringClass()),
