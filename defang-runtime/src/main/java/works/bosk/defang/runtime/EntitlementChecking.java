@@ -26,14 +26,14 @@ public class EntitlementChecking {
 
     public static <X extends Throwable> void doEntitled(Entitlement p, PrivilegedRunnable<X> action) throws X {
         // TODO: Check that caller is allowed to ask for this
-        Set<Entitlement> existingEntitlements = ACTIVE_ENTITLEMENTS.get();
-        Set<Entitlement> newEntitlements = EnumSet.copyOf(existingEntitlements);
-        newEntitlements.add(p);
-        ACTIVE_ENTITLEMENTS.set(newEntitlements);
+        Set<Entitlement> entitlements = ACTIVE_ENTITLEMENTS.get();
+        boolean shouldRemove = entitlements.add(p);
         try {
             action.run();
         } finally {
-            ACTIVE_ENTITLEMENTS.set(existingEntitlements);
+            if (shouldRemove) {
+                entitlements.remove(p);
+            }
         }
     }
 
