@@ -1,4 +1,3 @@
-
 package works.bosk.defang.agent;
 
 import org.objectweb.asm.Type;
@@ -21,49 +20,50 @@ import java.util.jar.JarFile;
 import java.util.stream.Stream;
 
 public class Agent {
-	public static void premain(String agentArgs, Instrumentation inst) throws UnmodifiableClassException, IOException {
-		var jarsString = System.getProperty("defang.runtimeJars");
-		if (jarsString != null) {
-			for (var jar: jarsString.split(File.pathSeparator)) {
-				inst.appendToBootstrapClassLoaderSearch(new JarFile(jar));
-			}
-		}
-		var scanResults = scanConfig(
-				ReflectionMethods.class, FilesystemMethods.class
-		);
-		inst.addTransformer(new Transformer(scanResults.entitlements), true);
-		inst.retransformClasses(scanResults.classesToRescan.toArray(new Class[0]));
-	}
+    public static void premain(String agentArgs, Instrumentation inst) throws UnmodifiableClassException, IOException {
+        var jarsString = System.getProperty("defang.runtimeJars");
+        if (jarsString != null) {
+            for (var jar : jarsString.split(File.pathSeparator)) {
+                inst.appendToBootstrapClassLoaderSearch(new JarFile(jar));
+            }
+        }
+        var scanResults = scanConfig(
+                ReflectionMethods.class, FilesystemMethods.class
+        );
+        inst.addTransformer(new Transformer(scanResults.entitlements), true);
+        inst.retransformClasses(scanResults.classesToRetransform.toArray(new Class[0]));
+    }
 
-	record ScanResults(Map<MethodKey, Entitlement> entitlements, Collection<Class<?>> classesToRescan) {}
+    record ScanResults(Map<MethodKey, Entitlement> entitlements, Collection<Class<?>> classesToRetransform) {
+    }
 
-	static ScanResults scanConfig(Class<?>... configClasses) {
-		var classesToRescan = new HashSet<Class<?>>();
-		var entitlements = new HashMap<MethodKey, Entitlement>();
-		for (var config: configClasses) {
-			for (Method m : config.getDeclaredMethods()) {
-				InstanceMethod im = m.getAnnotation(InstanceMethod.class);
-				Class<?> targetClass = m.getParameterTypes()[0];
-				classesToRescan.add(targetClass);
-				Type[] targetParameters = Stream.of(m.getParameterTypes())
-						.skip(1)
-						.map(Type::getType)
-						.toArray(Type[]::new);
-				String targetDescriptor = Type.getMethodDescriptor(
-						Type.getType(m.getReturnType()),
-						targetParameters
-				);
-				if (im != null) {
-					entitlements.put(new MethodKey(
-									Type.getInternalName(targetClass),
-									m.getName(),
-									targetDescriptor),
-							im.value()
-					);
-				}
-			}
-		}
-		return new ScanResults(entitlements, classesToRescan);
-	}
+    static ScanResults scanConfig(Class<?>... configClasses) {
+        var classesToRetransform = new HashSet<Class<?>>();
+        var entitlements = new HashMap<MethodKey, Entitlement>();
+        for (var config : configClasses) {
+            for (Method m : config.getDeclaredMethods()) {
+                InstanceMethod im = m.getAnnotation(InstanceMethod.class);
+                Class<?> targetClass = m.getParameterTypes()[0];
+                classesToRetransform.add(targetClass);
+                Type[] targetParameters = Stream.of(m.getParameterTypes())
+                        .skip(1)
+                        .map(Type::getType)
+                        .toArray(Type[]::new);
+                String targetDescriptor = Type.getMethodDescriptor(
+                        Type.getType(m.getReturnType()),
+                        targetParameters
+                );
+                if (im != null) {
+                    entitlements.put(new MethodKey(
+                                    Type.getInternalName(targetClass),
+                                    m.getName(),
+                                    targetDescriptor),
+                            im.value()
+                    );
+                }
+            }
+        }
+        return new ScanResults(entitlements, classesToRetransform);
+    }
 
 }
