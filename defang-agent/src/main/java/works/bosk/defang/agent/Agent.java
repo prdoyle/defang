@@ -2,6 +2,8 @@
 package works.bosk.defang.agent;
 
 import org.objectweb.asm.Type;
+import works.bosk.defang.agent.config.FilesystemMethods;
+import works.bosk.defang.agent.config.ReflectionMethods;
 import works.bosk.defang.api.Entitlement;
 import works.bosk.defang.api.InstanceMethod;
 import works.bosk.defang.runtime.MethodKey;
@@ -26,35 +28,39 @@ public class Agent {
 				inst.appendToBootstrapClassLoaderSearch(new JarFile(jar));
 			}
 		}
-		var scanResults = scanPolicies(Policies.class);
+		var scanResults = scanConfig(
+			ReflectionMethods.class, FilesystemMethods.class
+		);
 		inst.addTransformer(new Transformer(scanResults.entitlements), true);
 		inst.retransformClasses(scanResults.classesToRescan.toArray(new Class[0]));
 	}
 
 	record ScanResults(Map<MethodKey, Entitlement> entitlements, Collection<Class<?>> classesToRescan) {}
 
-	static ScanResults scanPolicies(Class<?> policyClass) {
+	static ScanResults scanConfig(Class<?>... configClasses) {
 		var classesToRescan = new HashSet<Class<?>>();
 		var entitlements = new HashMap<MethodKey, Entitlement>();
-		for (Method m : policyClass.getDeclaredMethods()) {
-			InstanceMethod im = m.getAnnotation(InstanceMethod.class);
-			Class<?> targetClass = m.getParameterTypes()[0];
-			classesToRescan.add(targetClass);
-            Type[] targetParameters = Stream.of(m.getParameterTypes())
-				.skip(1)
-				.map(Type::getType)
-				.toArray(Type[]::new);
-			String targetDescriptor = Type.getMethodDescriptor(
-				Type.getType(m.getReturnType()),
-				targetParameters
-			);
-			if (im != null) {
-				entitlements.put(new MethodKey(
-                		Type.getInternalName(targetClass),
-						m.getName(),
-						targetDescriptor),
-					im.value()
+		for (var config: configClasses) {
+			for (Method m : config.getDeclaredMethods()) {
+				InstanceMethod im = m.getAnnotation(InstanceMethod.class);
+				Class<?> targetClass = m.getParameterTypes()[0];
+				classesToRescan.add(targetClass);
+				Type[] targetParameters = Stream.of(m.getParameterTypes())
+						.skip(1)
+						.map(Type::getType)
+						.toArray(Type[]::new);
+				String targetDescriptor = Type.getMethodDescriptor(
+						Type.getType(m.getReturnType()),
+						targetParameters
 				);
+				if (im != null) {
+					entitlements.put(new MethodKey(
+									Type.getInternalName(targetClass),
+									m.getName(),
+									targetDescriptor),
+							im.value()
+					);
+				}
 			}
 		}
 		return new ScanResults(entitlements, classesToRescan);
