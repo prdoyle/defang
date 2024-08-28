@@ -1,10 +1,10 @@
 package works.bosk.defang.agent;
 
-import works.bosk.defang.runtime.InstanceMethod;
+import works.bosk.defang.api.InstanceMethod;
 
 import java.io.File;
 
-import static works.bosk.defang.runtime.Entitlement.FILES;
+import static works.bosk.defang.api.Entitlement.FILES;
 
 public interface Policies {
 //	@InstanceMethod(REFLECTION)

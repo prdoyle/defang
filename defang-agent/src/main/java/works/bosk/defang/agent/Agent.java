@@ -2,8 +2,8 @@
 package works.bosk.defang.agent;
 
 import org.objectweb.asm.Type;
-import works.bosk.defang.runtime.Entitlement;
-import works.bosk.defang.runtime.InstanceMethod;
+import works.bosk.defang.api.Entitlement;
+import works.bosk.defang.api.InstanceMethod;
 import works.bosk.defang.runtime.MethodKey;
 
 import java.io.File;

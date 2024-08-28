@@ -7,7 +7,8 @@ import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
-import works.bosk.defang.runtime.Entitlement;
+import works.bosk.defang.api.Entitlement;
+import works.bosk.defang.runtime.EntitlementChecking;
 import works.bosk.defang.runtime.MethodKey;
 
 import java.lang.instrument.ClassFileTransformer;
@@ -85,7 +86,7 @@ public class Transformer implements ClassFileTransformer {
 
 	static {
 		try {
-			CHECK_ENTITLEMENT = Entitlement.class.getDeclaredMethod("checkEntitlement", String.class);
+			CHECK_ENTITLEMENT = EntitlementChecking.class.getDeclaredMethod("checkEntitlement", String.class);
 			GOT_HERE = Transformer.class.getDeclaredMethod("gotHere");
 			SYSTEM_GC = System.class.getDeclaredMethod("gc");
 		} catch (NoSuchMethodException e) {

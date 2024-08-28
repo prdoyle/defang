@@ -28,7 +28,7 @@ test {
 jar {
     manifest {
         attributes(
-                'Premain-Class': 'works.bosk.defang.agent.EntitlementAgent',
+                'Premain-Class': 'works.bosk.defang.agent.Agent',
                 'Can-Redefine-Classes': 'true',
                 'Can-Retransform-Classes': 'true'
         )
