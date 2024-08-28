@@ -5,7 +5,6 @@ import works.bosk.defang.agent.config.FilesystemMethods;
 import works.bosk.defang.agent.config.ReflectionMethods;
 import works.bosk.defang.api.Entitlement;
 import works.bosk.defang.api.InstanceMethod;
-import works.bosk.defang.runtime.MethodKey;
 
 import java.io.File;
 import java.io.IOException;

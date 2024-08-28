@@ -8,7 +8,6 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import works.bosk.defang.api.Entitlement;
 import works.bosk.defang.runtime.EntitlementChecking;
-import works.bosk.defang.runtime.MethodKey;
 
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.reflect.Method;

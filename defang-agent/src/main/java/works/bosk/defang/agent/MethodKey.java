@@ -1,4 +1,4 @@
-package works.bosk.defang.runtime;
+package works.bosk.defang.agent;
 
 public record MethodKey(
         String className,
