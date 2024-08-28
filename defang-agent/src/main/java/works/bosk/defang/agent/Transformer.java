@@ -67,7 +67,7 @@ public class Transformer implements ClassFileTransformer {
 		@Override
 		public void visitCode() {
 			mv.visitLdcInsn(requirement.toString());
-			Method method = SYSTEM_GC;
+			Method method = CHECK_ENTITLEMENT;
 			mv.visitMethodInsn(
 				Opcodes.INVOKESTATIC,
 				Type.getInternalName(method.getDeclaringClass()),
@@ -78,16 +78,11 @@ public class Transformer implements ClassFileTransformer {
 		}
 	}
 
-	public static void gotHere() {
-		System.out.println("GOT HERE!");
-	}
-
-	private static final Method CHECK_ENTITLEMENT, GOT_HERE, SYSTEM_GC;
+	private static final Method CHECK_ENTITLEMENT, SYSTEM_GC;
 
 	static {
 		try {
 			CHECK_ENTITLEMENT = EntitlementChecking.class.getDeclaredMethod("checkEntitlement", String.class);
-			GOT_HERE = Transformer.class.getDeclaredMethod("gotHere");
 			SYSTEM_GC = System.class.getDeclaredMethod("gc");
 		} catch (NoSuchMethodException e) {
 			throw new IllegalStateException(e);

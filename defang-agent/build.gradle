@@ -1,3 +1,5 @@
+import static java.util.stream.Collectors.joining;
+
 plugins {
     id 'java'
 }
@@ -9,7 +11,12 @@ repositories {
     mavenCentral()
 }
 
+configurations {
+    defangRuntime
+}
+
 dependencies {
+    defangRuntime project(":defang-runtime")
     implementation 'org.ow2.asm:asm:9.6'
     implementation 'org.ow2.asm:asm-commons:9.6'
     implementation project(":defang-runtime")
@@ -21,6 +28,9 @@ test {
     dependsOn(jar)
     useJUnitPlatform()
 //	jvmArgs "--patch-module java.base=${jar.archiveFile.get().asFile}"
+    def runtimeJars = configurations.defangRuntime.files.stream().map(File::toString).collect(joining(File.pathSeparator))
+//    System.out.println("Jars: " + runtimeJars)
+    jvmArgs "-Ddefang.runtimeJars=$runtimeJars"
     jvmArgs "-javaagent:${jar.archiveFile.get().asFile}"
 }
 

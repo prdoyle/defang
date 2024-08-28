@@ -7,25 +7,40 @@ import works.bosk.defang.api.InstanceMethod;
 import works.bosk.defang.runtime.MethodKey;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.instrument.Instrumentation;
 import java.lang.instrument.UnmodifiableClassException;
 import java.lang.reflect.Method;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.jar.JarFile;
 import java.util.stream.Stream;
 
 public class Agent {
-	public static void premain(String agentArgs, Instrumentation inst) throws UnmodifiableClassException {
-		inst.addTransformer(new Transformer(scanPolicies(Policies.class)), true);
-		inst.retransformClasses(File.class);
+	public static void premain(String agentArgs, Instrumentation inst) throws UnmodifiableClassException, IOException {
+		var jarsString = System.getProperty("defang.runtimeJars");
+		if (jarsString != null) {
+            for (var jar: jarsString.split(File.pathSeparator)) {
+				inst.appendToBootstrapClassLoaderSearch(new JarFile(jar));
+			}
+		}
+		var scanResults = scanPolicies(Policies.class);
+		inst.addTransformer(new Transformer(scanResults.entitlements), true);
+		inst.retransformClasses(scanResults.classesToRescan.toArray(new Class[0]));
 	}
 
-	static Map<MethodKey, Entitlement> scanPolicies(Class<?> policyClass) {
-		Map<MethodKey, Entitlement> result = new HashMap<>();
+	record ScanResults(Map<MethodKey, Entitlement> entitlements, Collection<Class<?>> classesToRescan) {}
+
+	static ScanResults scanPolicies(Class<?> policyClass) {
+		var classesToRescan = new HashSet<Class<?>>();
+		var entitlements = new HashMap<MethodKey, Entitlement>();
 		for (Method m : policyClass.getDeclaredMethods()) {
 			InstanceMethod im = m.getAnnotation(InstanceMethod.class);
-			String targetClass = Type.getInternalName(m.getParameterTypes()[0]);
-			Type[] targetParameters = Stream.of(m.getParameterTypes())
+			Class<?> targetClass = m.getParameterTypes()[0];
+			classesToRescan.add(targetClass);
+            Type[] targetParameters = Stream.of(m.getParameterTypes())
 				.skip(1)
 				.map(Type::getType)
 				.toArray(Type[]::new);
@@ -34,15 +49,15 @@ public class Agent {
 				targetParameters
 			);
 			if (im != null) {
-				result.put(new MethodKey(
-						targetClass,
+				entitlements.put(new MethodKey(
+                		Type.getInternalName(targetClass),
 						m.getName(),
 						targetDescriptor),
 					im.value()
 				);
 			}
 		}
-		return result;
+		return new ScanResults(entitlements, classesToRescan);
 	}
 
 }
