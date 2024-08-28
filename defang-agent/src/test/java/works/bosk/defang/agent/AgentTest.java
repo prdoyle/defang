@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-public class EntitlementAgentTest {
+public class AgentTest {
 	@Test
 	public void notEntitled_throws() {
 		File file = new File("nonexistent");

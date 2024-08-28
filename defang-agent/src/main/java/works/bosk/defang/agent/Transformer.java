@@ -15,10 +15,10 @@ import java.lang.reflect.Method;
 import java.security.ProtectionDomain;
 import java.util.Map;
 
-public class EntitlementTransformer implements ClassFileTransformer {
+public class Transformer implements ClassFileTransformer {
 	private final Map<MethodKey, Entitlement> entitlements;
 
-	public EntitlementTransformer(Map<MethodKey, Entitlement> entitlements) {
+	public Transformer(Map<MethodKey, Entitlement> entitlements) {
 		this.entitlements = entitlements;
 	}
 
@@ -86,7 +86,7 @@ public class EntitlementTransformer implements ClassFileTransformer {
 	static {
 		try {
 			CHECK_ENTITLEMENT = Entitlement.class.getDeclaredMethod("checkEntitlement", String.class);
-			GOT_HERE = EntitlementTransformer.class.getDeclaredMethod("gotHere");
+			GOT_HERE = Transformer.class.getDeclaredMethod("gotHere");
 			SYSTEM_GC = System.class.getDeclaredMethod("gc");
 		} catch (NoSuchMethodException e) {
 			throw new IllegalStateException(e);

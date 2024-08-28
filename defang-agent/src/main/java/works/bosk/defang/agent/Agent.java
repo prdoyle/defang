@@ -14,9 +14,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Stream;
 
-public class EntitlementAgent {
+public class Agent {
 	public static void premain(String agentArgs, Instrumentation inst) throws UnmodifiableClassException {
-		inst.addTransformer(new EntitlementTransformer(scanPolicies(Policies.class)), true);
+		inst.addTransformer(new Transformer(scanPolicies(Policies.class)), true);
 		inst.retransformClasses(File.class);
 	}
 
