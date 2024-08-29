@@ -39,8 +39,12 @@ public class Agent {
         var classesToRetransform = new HashSet<Class<?>>();
         var entitlements = new HashMap<MethodKey, Entitlement>();
         for (var config : configClasses) {
+            InstanceMethod classAnnotation = config.getAnnotation(InstanceMethod.class);
             for (Method m : config.getDeclaredMethods()) {
-                InstanceMethod im = m.getAnnotation(InstanceMethod.class);
+                InstanceMethod annotation = m.getAnnotation(InstanceMethod.class);
+                if (annotation == null) {
+                    annotation = classAnnotation;
+                }
                 Class<?> targetClass = m.getParameterTypes()[0];
                 classesToRetransform.add(targetClass);
                 Type[] targetParameters = Stream.of(m.getParameterTypes())
@@ -51,12 +55,12 @@ public class Agent {
                         Type.getType(m.getReturnType()),
                         targetParameters
                 );
-                if (im != null) {
+                if (annotation != null) {
                     entitlements.put(new MethodKey(
                                     Type.getInternalName(targetClass),
                                     m.getName(),
                                     targetDescriptor),
-                            im.value()
+                            annotation.value()
                     );
                 }
             }
