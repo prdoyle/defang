@@ -2,11 +2,16 @@ package works.bosk.defang.runtime;
 
 import works.bosk.defang.api.Entitlement;
 import works.bosk.defang.api.NotEntitledException;
+import works.bosk.defang.runtime.permission.Permission;
 
 import java.util.EnumSet;
+import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Stream;
 
+import static java.lang.StackWalker.Option.RETAIN_CLASS_REFERENCE;
 import static works.bosk.defang.runtime.internal.EntitlementInternals.isActive;
+import static works.bosk.defang.runtime.permission.Permission.checkPermission;
 
 public class EntitlementChecking {
 
@@ -24,15 +29,17 @@ public class EntitlementChecking {
         void run() throws X;
     }
 
-    public static <X extends Throwable> void doEntitled(Entitlement p, PrivilegedRunnable<X> action) throws X {
-        // TODO: Check that caller is allowed to ask for this
+    public static <X extends Throwable> void doEntitled(Entitlement e, PrivilegedRunnable<X> action) throws X {
+        checkPermission(e, StackWalker
+                .getInstance(RETAIN_CLASS_REFERENCE)
+                .walk(s -> s.skip(1).findFirst().orElseThrow()));
         Set<Entitlement> entitlements = ACTIVE_ENTITLEMENTS.get();
-        boolean shouldRemove = entitlements.add(p);
+        boolean shouldRemove = entitlements.add(e);
         try {
             action.run();
         } finally {
             if (shouldRemove) {
-                entitlements.remove(p);
+                entitlements.remove(e);
             }
         }
     }
