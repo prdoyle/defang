@@ -5,19 +5,19 @@ import works.bosk.defang.api.NotEntitledException;
 
 import java.util.EnumSet;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
+
+import static works.bosk.defang.runtime.internal.EntitlementInternals.isActive;
 
 public class EntitlementChecking {
 
     private static final ThreadLocal<Set<Entitlement>> ACTIVE_ENTITLEMENTS = ThreadLocal.withInitial(() -> EnumSet.noneOf(Entitlement.class));
-    private static final AtomicBoolean isActive = new AtomicBoolean(false);
 
+    /**
+     * Causes entitlements to be checked. Before this is called, entitlements are not enforced,
+     * so there's no need for an application to set a lot of permissions which are required only during initialization.
+     */
     public static void activate() {
-        isActive.set(true);
-    }
-
-    public static void deactivate() {
-        isActive.set(false);
+        isActive = true;
     }
 
     public interface PrivilegedRunnable<X extends Throwable> {
@@ -38,7 +38,7 @@ public class EntitlementChecking {
     }
 
     public static void checkEntitlement(Entitlement entitlement) {
-        if (isActive.get() && !ACTIVE_ENTITLEMENTS.get().contains(entitlement)) {
+        if (isActive && !ACTIVE_ENTITLEMENTS.get().contains(entitlement)) {
             throw new NotEntitledException("Missing entitlement: " + entitlement);
         }
     }

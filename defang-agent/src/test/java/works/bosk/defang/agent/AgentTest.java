@@ -4,6 +4,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import works.bosk.defang.api.NotEntitledException;
 import works.bosk.defang.runtime.EntitlementChecking;
+import works.bosk.defang.runtime.internal.EntitlementInternals;
 
 import java.io.File;
 
@@ -19,7 +20,7 @@ public class AgentTest {
 
     @AfterEach
     void deactivate() {
-        EntitlementChecking.deactivate();
+        EntitlementInternals.isActive = false;
     }
 
     @Test
