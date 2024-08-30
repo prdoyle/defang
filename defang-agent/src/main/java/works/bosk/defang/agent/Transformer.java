@@ -18,6 +18,7 @@ public class Transformer implements ClassFileTransformer {
     private final Map<MethodKey, Entitlement> entitlements;
 
     public Transformer(Map<MethodKey, Entitlement> entitlements) {
+        // TODO: Should warn if any MethodKey doesn't match any methods
         this.entitlements = entitlements;
     }
 
