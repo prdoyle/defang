@@ -4,18 +4,31 @@ import works.bosk.defang.api.Entitlement;
 import works.bosk.defang.api.NotEntitledException;
 import works.bosk.defang.runtime.permission.Permission;
 
+import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
 import static java.lang.StackWalker.Option.RETAIN_CLASS_REFERENCE;
+import static java.util.Collections.emptySet;
 import static works.bosk.defang.runtime.internal.EntitlementInternals.isActive;
 import static works.bosk.defang.runtime.permission.Permission.checkPermission;
 
 public class EntitlementChecking {
+    private static final Map<Entitlement, Set<ClassLoader>> entitledClassLoaders = new ConcurrentHashMap<>();
 
-    private static final ThreadLocal<Set<Entitlement>> ACTIVE_ENTITLEMENTS = ThreadLocal.withInitial(() -> EnumSet.noneOf(Entitlement.class));
+    public static void revokeAll() {
+        entitledClassLoaders.clear();
+    }
+
+    public static boolean grant(Entitlement entitlement, ClassLoader classLoader) {
+        return entitledClassLoaders.computeIfAbsent(entitlement, k -> new HashSet<>()).add(classLoader);
+    }
 
     /**
      * Causes entitlements to be checked. Before this is called, entitlements are not enforced,
@@ -25,27 +38,8 @@ public class EntitlementChecking {
         isActive = true;
     }
 
-    public interface PrivilegedRunnable<X extends Throwable> {
-        void run() throws X;
-    }
-
-    public static <X extends Throwable> void doEntitled(Entitlement e, PrivilegedRunnable<X> action) throws X {
-        checkPermission(e, StackWalker
-                .getInstance(RETAIN_CLASS_REFERENCE)
-                .walk(s -> s.skip(1).findFirst().orElseThrow()));
-        Set<Entitlement> entitlements = ACTIVE_ENTITLEMENTS.get();
-        boolean shouldRemove = entitlements.add(e);
-        try {
-            action.run();
-        } finally {
-            if (shouldRemove) {
-                entitlements.remove(e);
-            }
-        }
-    }
-
-    public static void checkEntitlement(Entitlement entitlement) {
-        if (isActive && !ACTIVE_ENTITLEMENTS.get().contains(entitlement)) {
+    public static void checkEntitlement(Entitlement entitlement, Class<?> callerClass) {
+        if (isActive && !entitledClassLoaders.getOrDefault(entitlement, emptySet()).contains(callerClass.getClassLoader())) {
             throw new NotEntitledException("Missing entitlement: " + entitlement);
         }
     }

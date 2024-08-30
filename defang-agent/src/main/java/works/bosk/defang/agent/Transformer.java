@@ -1,5 +1,7 @@
 package works.bosk.defang.agent;
 
+import org.objectweb.asm.AnnotationVisitor;
+import org.objectweb.asm.Attribute;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
@@ -13,6 +15,10 @@ import java.lang.instrument.ClassFileTransformer;
 import java.lang.reflect.Method;
 import java.security.ProtectionDomain;
 import java.util.Map;
+
+import static org.objectweb.asm.Opcodes.GETSTATIC;
+import static org.objectweb.asm.Opcodes.INVOKESTATIC;
+import static org.objectweb.asm.Opcodes.INVOKEVIRTUAL;
 
 public class Transformer implements ClassFileTransformer {
     private final Map<MethodKey, Entitlement> entitlements;
@@ -54,6 +60,7 @@ public class Transformer implements ClassFileTransformer {
 
     static class EntitlementMethodVisitor extends MethodVisitor {
         private final Entitlement requirement;
+        private boolean hasCallerSensitiveAnnotation = false;
 
         EntitlementMethodVisitor(int api, MethodVisitor methodVisitor, Entitlement requirement) {
             super(api, methodVisitor);
@@ -61,21 +68,46 @@ public class Transformer implements ClassFileTransformer {
         }
 
         @Override
+        public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
+            if (visible && descriptor.endsWith("CallerSensitive;")) {
+                hasCallerSensitiveAnnotation = true;
+            }
+            return super.visitAnnotation(descriptor, visible);
+        }
+
+        @Override
         public void visitCode() {
+            pushEntitlement();
+            pushCallerClass();
+            invokeCheckEntitlement();
+            super.visitCode();
+        }
+
+        private void pushEntitlement() {
             mv.visitFieldInsn(
-                    Opcodes.GETSTATIC,
+                    GETSTATIC,
                     Type.getInternalName(Entitlement.class),
                     requirement.toString(),
                     Type.getDescriptor(Entitlement.class));
+        }
 
+        private void pushCallerClass() {
+            if (hasCallerSensitiveAnnotation) {
+                mv.visitMethodInsn(INVOKESTATIC, "jdk/internal/reflect/Reflection", "getCallerClass", "()Ljava/lang/Class;", false);
+            } else {
+                mv.visitFieldInsn(GETSTATIC, "java/lang/StackWalker$Option", "RETAIN_CLASS_REFERENCE", "Ljava/lang/StackWalker$Option;");
+                mv.visitMethodInsn(INVOKESTATIC, "java/lang/StackWalker", "getInstance", "(Ljava/lang/StackWalker$Option;)Ljava/lang/StackWalker;", false);
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StackWalker", "getCallerClass", "()Ljava/lang/Class;", false);
+            }
+        }
+
+        private void invokeCheckEntitlement() {
             mv.visitMethodInsn(
-                    Opcodes.INVOKESTATIC,
+                    INVOKESTATIC,
                     Type.getInternalName(CHECK_ENTITLEMENT.getDeclaringClass()),
                     CHECK_ENTITLEMENT.getName(),
                     Type.getMethodDescriptor(CHECK_ENTITLEMENT),
                     false);
-
-            super.visitCode();
         }
     }
 
@@ -83,7 +115,7 @@ public class Transformer implements ClassFileTransformer {
 
     static {
         try {
-            CHECK_ENTITLEMENT = EntitlementChecking.class.getDeclaredMethod("checkEntitlement", Entitlement.class);
+            CHECK_ENTITLEMENT = EntitlementChecking.class.getDeclaredMethod("checkEntitlement", Entitlement.class, Class.class);
         } catch (NoSuchMethodException e) {
             throw new IllegalStateException(e);
         }
