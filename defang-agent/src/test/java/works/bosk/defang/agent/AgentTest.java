@@ -3,8 +3,10 @@ package works.bosk.defang.agent;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import works.bosk.defang.api.FileEntitlement;
 import works.bosk.defang.api.NotEntitledException;
-import works.bosk.defang.runtime.EntitlementChecking;
+import works.bosk.defang.api.ReflectionEntitlement;
+import works.bosk.defang.runtime.EntitlementChecks;
 import works.bosk.defang.runtime.internal.EntitlementInternals;
 
 import java.io.File;
@@ -12,8 +14,7 @@ import java.io.File;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static works.bosk.defang.api.Entitlement.FILES;
-import static works.bosk.defang.api.Entitlement.REFLECTION;
+import static works.bosk.defang.api.OperationKind.WRITE;
 
 /**
  * This is an end-to-end test that runs with the javaagent installed.
@@ -24,14 +25,14 @@ public class AgentTest {
 
     @BeforeEach
     void activate() {
-        EntitlementChecking.revokeAll();
-        EntitlementChecking.activate();
+        EntitlementChecks.revokeAll();
+        EntitlementChecks.activate();
     }
 
     @AfterEach
     void deactivate() {
         EntitlementInternals.isActive = false;
-        EntitlementChecking.revokeAll();
+        EntitlementChecks.revokeAll();
     }
 
     @Test
@@ -39,16 +40,16 @@ public class AgentTest {
         assertThrows(NotEntitledException.class, file::delete);
         assertThrows(NotEntitledException.class, () -> assertNotNull(getClass().getDeclaredMethod("entitled_works")));
         assertThrows(NotEntitledException.class, getClass()::getDeclaredMethods);
-        EntitlementChecking.grant(REFLECTION, getClass().getClassLoader());
+        EntitlementChecks.grant(getClass().getClassLoader(), new ReflectionEntitlement());
         assertThrows(NotEntitledException.class, file::delete, "Wrong permission");
     }
 
     @Test
     public void entitled_works() throws NoSuchMethodException {
-        EntitlementChecking.grant(FILES, getClass().getClassLoader());
+        EntitlementChecks.grant(getClass().getClassLoader(), new FileEntitlement(file, WRITE));
         assertFalse(file.delete());
-        EntitlementChecking.revokeAll();
-        EntitlementChecking.grant(REFLECTION, getClass().getClassLoader());
+        EntitlementChecks.revokeAll();
+        EntitlementChecks.grant(getClass().getClassLoader(), new ReflectionEntitlement());
         assertNotNull(getClass().getDeclaredMethod("entitled_works"));
         assertNotNull(getClass().getDeclaredMethods());
     }

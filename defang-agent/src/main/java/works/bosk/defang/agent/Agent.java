@@ -1,9 +1,9 @@
 package works.bosk.defang.agent;
 
 import org.objectweb.asm.Type;
-import works.bosk.defang.agent.config.FilesystemMethods;
-import works.bosk.defang.agent.config.ReflectionMethods;
-import works.bosk.defang.api.Entitlement;
+import works.bosk.defang.runtime.InstanceMethod;
+import works.bosk.defang.runtime.config.FilesystemMethods;
+import works.bosk.defang.runtime.config.ReflectionMethods;
 
 import java.io.File;
 import java.io.IOException;
@@ -14,8 +14,11 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.jar.JarFile;
 import java.util.stream.Stream;
+
+import static java.util.stream.Collectors.toSet;
 
 public class Agent {
     public static void premain(String agentArgs, Instrumentation inst) throws UnmodifiableClassException, IOException {
@@ -28,44 +31,54 @@ public class Agent {
         var scanResults = scanConfig(
                 ReflectionMethods.class, FilesystemMethods.class
         );
-        inst.addTransformer(new Transformer(scanResults.entitlements), true);
+        inst.addTransformer(new Transformer(
+                scanResults.classesToRetransform.stream().map(Type::getInternalName).collect(toSet()),
+                scanResults.instrumentationMethods),
+                true);
         inst.retransformClasses(scanResults.classesToRetransform.toArray(new Class[0]));
     }
 
-    record ScanResults(Map<MethodKey, Entitlement> entitlements, Collection<Class<?>> classesToRetransform) {
+    record ScanResults(Map<MethodKey, Method> instrumentationMethods, Collection<Class<?>> classesToRetransform) {
     }
 
     static ScanResults scanConfig(Class<?>... configClasses) {
         var classesToRetransform = new HashSet<Class<?>>();
-        var entitlements = new HashMap<MethodKey, Entitlement>();
+        var methods = new HashMap<MethodKey, Method>();
         for (var config : configClasses) {
             InstanceMethod classAnnotation = config.getAnnotation(InstanceMethod.class);
-            for (Method m : config.getDeclaredMethods()) {
-                InstanceMethod annotation = m.getAnnotation(InstanceMethod.class);
+            for (Method method : config.getDeclaredMethods()) {
+                InstanceMethod annotation = method.getAnnotation(InstanceMethod.class);
                 if (annotation == null) {
                     annotation = classAnnotation;
                 }
-                Class<?> targetClass = m.getParameterTypes()[0];
+                if (annotation == null) {
+                    continue;
+                }
+                if (method.getParameterTypes().length < 2) {
+                    throw new IllegalStateException("Instrumentation method's parameters should include at least the caller class and receiver object");
+                }
+                if (!method.getParameterTypes()[0].equals(Class.class)) {
+                    throw new IllegalStateException("First parameter of instrumentation method should be the caller class");
+                }
+                Class<?> targetClass = method.getParameterTypes()[1];
                 classesToRetransform.add(targetClass);
-                Type[] targetParameters = Stream.of(m.getParameterTypes())
-                        .skip(1)
+                Type[] targetParameters = Stream.of(method.getParameterTypes())
+                        .skip(2)
                         .map(Type::getType)
                         .toArray(Type[]::new);
                 String targetDescriptor = Type.getMethodDescriptor(
-                        Type.getType(m.getReturnType()),
+                        Type.VOID_TYPE, // We ignore the return type
                         targetParameters
                 );
-                if (annotation != null) {
-                    entitlements.put(new MethodKey(
-                                    Type.getInternalName(targetClass),
-                                    m.getName(),
-                                    targetDescriptor),
-                            annotation.value()
-                    );
-                }
+                methods.put(new MethodKey(
+                                Type.getInternalName(targetClass),
+                                method.getName(),
+                                targetDescriptor),
+                        method
+                );
             }
         }
-        return new ScanResults(entitlements, classesToRetransform);
+        return new ScanResults(methods, classesToRetransform);
     }
 
 }

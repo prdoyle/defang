@@ -19,6 +19,7 @@ dependencies {
     defangRuntime project(":defang-runtime")
     implementation 'org.ow2.asm:asm:9.6'
     implementation 'org.ow2.asm:asm-commons:9.6'
+    implementation 'org.ow2.asm:asm-util:9.6'
     implementation project(":defang-runtime")
     testImplementation platform('org.junit:junit-bom:5.10.0')
     testImplementation 'org.junit.jupiter:junit-jupiter'
@@ -33,6 +34,7 @@ test {
         jvmArgs "-javaagent:${jar.archiveFile.get().asFile}"
     }
 }
+
 
 jar {
     manifest {
