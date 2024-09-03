@@ -15,6 +15,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static works.bosk.defang.api.Entitlement.FILES;
 import static works.bosk.defang.api.Entitlement.REFLECTION;
 
+/**
+ * This is an end-to-end test that runs with the javaagent installed.
+ * See {@code build.gradle}.
+ */
 public class AgentTest {
     File file = new File("nonexistent");
 
