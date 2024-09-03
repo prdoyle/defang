@@ -26,12 +26,14 @@ dependencies {
 }
 
 test {
+    System.out.println "build.gradle --- got here!"
     dependsOn(jar)
     useJUnitPlatform()
     if (!testClassesDirs.asFileTree.matching { include 'works/bosk/defang/agent/AgentTest.class' }.isEmpty()) {
         def runtimeJars = configurations.defangRuntime.files.stream().map(File::toString).collect(joining(File.pathSeparator))
         jvmArgs "-Ddefang.runtimeJars=$runtimeJars"
         jvmArgs "-javaagent:${jar.archiveFile.get().asFile}"
+        print "!!!!!!!!!! jvmArgs: " + jvmArgs
     }
 }
 

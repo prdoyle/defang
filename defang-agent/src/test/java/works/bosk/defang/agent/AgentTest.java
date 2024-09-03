@@ -18,7 +18,9 @@ import static works.bosk.defang.api.OperationKind.WRITE;
 
 /**
  * This is an end-to-end test that runs with the javaagent installed.
- * See {@code build.gradle}.
+ * It should exhaustively test every instrumented method to make sure it passes with the entitlement
+ * and fails without it.
+ * See {@code build.gradle} for how we set the command line arguments for this test.
  */
 public class AgentTest {
     File file = new File("nonexistent");
@@ -40,16 +42,16 @@ public class AgentTest {
         assertThrows(NotEntitledException.class, file::delete);
         assertThrows(NotEntitledException.class, () -> assertNotNull(getClass().getDeclaredMethod("entitled_works")));
         assertThrows(NotEntitledException.class, getClass()::getDeclaredMethods);
-        EntitlementChecks.grant(getClass().getClassLoader(), new ReflectionEntitlement());
+        EntitlementChecks.grant(getClass().getModule(), new ReflectionEntitlement());
         assertThrows(NotEntitledException.class, file::delete, "Wrong permission");
     }
 
     @Test
     public void entitled_works() throws NoSuchMethodException {
-        EntitlementChecks.grant(getClass().getClassLoader(), new FileEntitlement(file, WRITE));
+        EntitlementChecks.grant(getClass().getModule(), new FileEntitlement(file, WRITE));
         assertFalse(file.delete());
         EntitlementChecks.revokeAll();
-        EntitlementChecks.grant(getClass().getClassLoader(), new ReflectionEntitlement());
+        EntitlementChecks.grant(getClass().getModule(), new ReflectionEntitlement());
         assertNotNull(getClass().getDeclaredMethod("entitled_works"));
         assertNotNull(getClass().getDeclaredMethods());
     }

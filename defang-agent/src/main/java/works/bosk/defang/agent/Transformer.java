@@ -7,9 +7,7 @@ import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
-import org.objectweb.asm.util.TraceClassVisitor;
 
-import java.io.File;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.reflect.Method;
 import java.security.ProtectionDomain;
@@ -24,10 +22,20 @@ public class Transformer implements ClassFileTransformer {
     private final Set<String> classesToTransform;
     private final Map<MethodKey, Method> instrumentationMethods;
 
+    /**
+     * This is to avoid name collisions during testing. In prod this should be an empty string.
+     */
+    private final String classNameSuffix;
+
     public Transformer(Set<String> classesToTransform, Map<MethodKey, Method> instrumentationMethods) {
+        this(classesToTransform, instrumentationMethods, "");
+    }
+
+    public Transformer(Set<String> classesToTransform, Map<MethodKey, Method> instrumentationMethods, String classNameSuffix) {
         this.classesToTransform = classesToTransform;
         // TODO: Should warn if any MethodKey doesn't match any methods
         this.instrumentationMethods = instrumentationMethods;
+        this.classNameSuffix = classNameSuffix;
     }
 
     @Override
@@ -55,13 +63,18 @@ public class Transformer implements ClassFileTransformer {
         }
 
         @Override
+        public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
+            super.visit(version, access, name + classNameSuffix, signature, superName, interfaces);
+        }
+
+        @Override
         public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
             var mv = super.visitMethod(access, name, descriptor, signature, exceptions);
             var voidDescriptor = Type.getMethodDescriptor(Type.VOID_TYPE, Type.getArgumentTypes(descriptor));
             var key = new MethodKey(className, name, voidDescriptor);
             var instrumentationMethod = instrumentationMethods.get(key);
             if (instrumentationMethod != null) {
-                System.out.println("Matched key: " + key);
+                System.out.println("Transformer: Matched key: " + key);
                 return new EntitlementMethodVisitor(Opcodes.ASM9, mv, descriptor, instrumentationMethod);
             } else {
 //                System.out.println("No match for key: " + key);
@@ -108,7 +121,10 @@ public class Transformer implements ClassFileTransformer {
         }
 
         private void forwardIncomingArguments(boolean isStatic) {
-            int localVarIndex = isStatic ? 1 : 0;
+            int localVarIndex = 0;
+            if (!isStatic) {
+                mv.visitVarInsn(Opcodes.ALOAD, localVarIndex++);
+            }
             for (Type type : Type.getArgumentTypes(instrumentedMethodDescriptor)) {
                 mv.visitVarInsn(type.getOpcode(Opcodes.ILOAD), localVarIndex);
                 localVarIndex += type.getSize();
