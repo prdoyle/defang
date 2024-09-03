@@ -2,6 +2,7 @@ import static java.util.stream.Collectors.joining;
 
 plugins {
     id 'java'
+    id 'me.champeau.jmh' version '0.7.2'
 }
 
 group = 'works.bosk'
@@ -23,6 +24,9 @@ dependencies {
     implementation project(":defang-runtime")
     testImplementation platform('org.junit:junit-bom:5.10.0')
     testImplementation 'org.junit.jupiter:junit-jupiter'
+
+    testImplementation 'org.openjdk.jmh:jmh-core:1.37'
+    testAnnotationProcessor 'org.openjdk.jmh:jmh-generator-annprocess:1.37'
 }
 
 test {
