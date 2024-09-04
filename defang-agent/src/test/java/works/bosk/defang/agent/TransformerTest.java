@@ -6,8 +6,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import works.bosk.defang.api.NotEntitledException;
 import works.bosk.defang.runtime.InstanceMethod;
+import works.bosk.defang.runtime.StaticMethod;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.Set;
 
@@ -24,6 +27,10 @@ public class TransformerTest {
         public String hello() {
             return "world";
         }
+
+        public static String staticHello() {
+            return "static world";
+        }
     }
 
     public static class Config {
@@ -32,21 +39,30 @@ public class TransformerTest {
             throw new NotEntitledException("nope");
         }
 
+        @StaticMethod
+        public static void staticHello(Class<?> callerClass, Helloable declaringClass) {
+            throw new NotEntitledException("nuh uh");
+        }
     }
 
     @Test
-    void test() throws NoSuchMethodException, IOException {
+    void test() throws NoSuchMethodException, IOException, InvocationTargetException, InstantiationException, IllegalAccessException {
         // This test doesn't replace ClassToInstrument in-place but instead loads a separate
         // class ClassToInstrument_NEW that contains the instrumentation. Because of this,
         // we need to configure the Transformer to use a MethodKey and instrumentationMethod
         // with slightly different signatures (using the common interface Helloable) which
         // is not what would happen when it's run by the agent.
-        var targetMethod = ClassToInstrument.class.getMethod("hello");
-        var instrumentationMethod = Config.class.getMethod("hello", Class.class, Helloable.class);
 
+        MethodKey k1 = MethodKey.forTargetMethod(ClassToInstrument.class.getMethod("hello"));
+        Method v1 = Config.class.getMethod("hello", Class.class, Helloable.class);
+        MethodKey k2 = MethodKey.forTargetMethod(ClassToInstrument.class.getMethod("staticHello"));
+        Method v2 = Config.class.getMethod("staticHello", Class.class, Helloable.class);
         var transformer = new Transformer(
                 Set.of(Type.getInternalName(ClassToInstrument.class)),
-                Map.of(MethodKey.forTargetMethod(targetMethod), instrumentationMethod),
+                Map.of(
+                        k1, v1,
+                        k2, v2
+                ),
                 "_NEW");
         var classFileName = "/" + Type.getInternalName(ClassToInstrument.class) + ".class";
         byte[] oldBytecode;
@@ -72,7 +88,27 @@ public class TransformerTest {
         Class<?> newClass = new TestLoader(Helloable.class.getClassLoader()).defineClassFromBytes(ClassToInstrument.class.getName() + "_NEW", newBytecode);
 
         assertEquals("world", new ClassToInstrument().hello());
-        assertThrows(NotEntitledException.class, () -> ((Helloable)newClass.getConstructor().newInstance()).hello());
+        assertEquals("static world", ClassToInstrument.staticHello());
+        assertEquals("static world", callStaticHello(ClassToInstrument.class));
+        Helloable newInstance = (Helloable) newClass.getConstructor().newInstance();
+        assertThrows(NotEntitledException.class, newInstance::hello);
+        assertThrows(NotEntitledException.class, () -> callStaticHello(newClass));
+    }
+
+    private static String callStaticHello(Class<?> c) throws NoSuchMethodException, IllegalAccessException {
+        try {
+            return (String) c
+                    .getMethod("staticHello")
+                    .invoke(null);
+        } catch (InvocationTargetException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof NotEntitledException n) {
+                // Sometimes we're expecting this one!
+                throw n;
+            } else {
+                throw new AssertionError(cause);
+            }
+        }
     }
 
     static class TestLoader extends ClassLoader {

@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import works.bosk.defang.runtime.config.FilesystemMethods;
 import works.bosk.defang.runtime.config.ReflectionMethods;
+import works.bosk.defang.runtime.config.SystemMethods;
 
 import java.io.File;
 import java.io.IOException;
@@ -24,7 +25,10 @@ public class Agent {
             }
         }
         var scanResults = ConfigScanner.scanConfig(
-                ReflectionMethods.class, FilesystemMethods.class
+                ReflectionMethods.class,
+                FilesystemMethods.class,
+                ReflectionMethods.class,
+                SystemMethods.class
         );
         inst.addTransformer(new Transformer(
                 scanResults.classesToRetransform().stream().map(Type::getInternalName).collect(toSet()),

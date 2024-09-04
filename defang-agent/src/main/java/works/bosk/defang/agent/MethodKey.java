@@ -3,12 +3,14 @@ package works.bosk.defang.agent;
 import org.objectweb.asm.Type;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.stream.Stream;
 
 public record MethodKey(
         String className,
         String methodName,
-        String voidDescriptor
+        String voidDescriptor,
+        boolean isStatic
 ) {
     public static MethodKey forTargetMethod(Method targetMethod) {
         Type actualType = Type.getMethodType(Type.getMethodDescriptor(targetMethod));
@@ -16,10 +18,11 @@ public record MethodKey(
         return new MethodKey(
                 Type.getInternalName(targetMethod.getDeclaringClass()),
                 targetMethod.getName(),
-                voidDescriptor);
+                voidDescriptor,
+                Modifier.isStatic(targetMethod.getModifiers()));
     }
 
-    public static MethodKey forCorrespondingTargetMethod(Method instrumentationMethod) {
+    public static MethodKey forCorrespondingTargetMethod(Method instrumentationMethod, boolean isStatic) {
         Class<?> targetClass = instrumentationMethod.getParameterTypes()[1];
         Type[] targetParameters = Stream.of(instrumentationMethod.getParameterTypes())
                 .skip(2)
@@ -32,7 +35,8 @@ public record MethodKey(
         return new MethodKey(
                 Type.getInternalName(targetClass),
                 instrumentationMethod.getName(),
-                targetDescriptor);
+                targetDescriptor,
+                isStatic);
     }
 
 }

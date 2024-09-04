@@ -16,6 +16,7 @@ import java.security.ProtectionDomain;
 import java.util.Map;
 import java.util.Set;
 
+import static org.objectweb.asm.Opcodes.ACC_STATIC;
 import static org.objectweb.asm.Opcodes.GETSTATIC;
 import static org.objectweb.asm.Opcodes.INVOKESTATIC;
 import static org.objectweb.asm.Opcodes.INVOKEVIRTUAL;
@@ -71,11 +72,11 @@ public class Transformer implements ClassFileTransformer {
         public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
             var mv = super.visitMethod(access, name, descriptor, signature, exceptions);
             var voidDescriptor = Type.getMethodDescriptor(Type.VOID_TYPE, Type.getArgumentTypes(descriptor));
-            var key = new MethodKey(className, name, voidDescriptor);
+            var key = new MethodKey(className, name, voidDescriptor, (access & ACC_STATIC) != 0);
             var instrumentationMethod = instrumentationMethods.get(key);
             if (instrumentationMethod != null) {
                 LOGGER.debug("Will instrument method {}", key);
-                return new EntitlementMethodVisitor(Opcodes.ASM9, mv, descriptor, instrumentationMethod);
+                return new EntitlementMethodVisitor(Opcodes.ASM9, mv, (access & ACC_STATIC) != 0, descriptor, instrumentationMethod);
             } else {
                 LOGGER.trace("Will not instrument method {}", key);
             }
@@ -84,12 +85,14 @@ public class Transformer implements ClassFileTransformer {
     }
 
     static class EntitlementMethodVisitor extends MethodVisitor {
+        private final boolean instrumentedMethodIsStatic;
         private final String instrumentedMethodDescriptor;
         private final Method instrumentationMethod;
         private boolean hasCallerSensitiveAnnotation = false;
 
-        EntitlementMethodVisitor(int api, MethodVisitor methodVisitor, String instrumentedMethodDescriptor, Method instrumentationMethod) {
+        EntitlementMethodVisitor(int api, MethodVisitor methodVisitor, boolean instrumentedMethodIsStatic, String instrumentedMethodDescriptor, Method instrumentationMethod) {
             super(api, methodVisitor);
+            this.instrumentedMethodIsStatic = instrumentedMethodIsStatic;
             this.instrumentedMethodDescriptor = instrumentedMethodDescriptor;
             this.instrumentationMethod = instrumentationMethod;
         }
@@ -105,7 +108,7 @@ public class Transformer implements ClassFileTransformer {
         @Override
         public void visitCode() {
             pushCallerClass();
-            forwardIncomingArguments(false);
+            forwardIncomingArguments();
             invokeInstrumentationMethod();
             super.visitCode();
         }
@@ -120,9 +123,13 @@ public class Transformer implements ClassFileTransformer {
             }
         }
 
-        private void forwardIncomingArguments(boolean isStatic) {
+        private void forwardIncomingArguments() {
             int localVarIndex = 0;
-            if (!isStatic) {
+            if (instrumentedMethodIsStatic) {
+                // To keep things consistent between static and virtual methods, we pass a null in here,
+                // much like Field and Method accept nulls for static fields/methods.
+                mv.visitInsn(Opcodes.ACONST_NULL);
+            } else {
                 mv.visitVarInsn(Opcodes.ALOAD, localVarIndex++);
             }
             for (Type type : Type.getArgumentTypes(instrumentedMethodDescriptor)) {

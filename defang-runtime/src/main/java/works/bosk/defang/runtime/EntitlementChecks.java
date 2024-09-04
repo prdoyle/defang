@@ -2,19 +2,16 @@ package works.bosk.defang.runtime;
 
 import works.bosk.defang.api.Entitlement;
 import works.bosk.defang.api.FileEntitlement;
+import works.bosk.defang.api.FlagEntitlement;
 import works.bosk.defang.api.NotEntitledException;
 import works.bosk.defang.api.OperationKind;
 import works.bosk.defang.api.ReflectionEntitlement;
 
 import java.io.File;
-import java.util.Collection;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Predicate;
 
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
 import static java.util.Collections.newSetFromMap;
 import static works.bosk.defang.runtime.internal.EntitlementInternals.isActive;
@@ -22,6 +19,7 @@ import static works.bosk.defang.runtime.internal.EntitlementInternals.isActive;
 public class EntitlementChecks {
     private static final Map<Module, Set<FileEntitlement>> fileEntitlements = new ConcurrentHashMap<>();
     private static final Map<Module, Set<ReflectionEntitlement>> reflectionEntitlements = new ConcurrentHashMap<>();
+    private static final Map<Module, Set<FlagEntitlement>> flagEntitlements = new ConcurrentHashMap<>();
 
     /**
      * Causes entitlements to be checked. Before this is called, entitlements are not enforced,
@@ -34,6 +32,7 @@ public class EntitlementChecks {
     public static void revokeAll() {
         fileEntitlements.clear();
         reflectionEntitlements.clear();
+        flagEntitlements.clear();
     }
 
     public static boolean grant(Module module, Entitlement e) {
@@ -44,11 +43,18 @@ public class EntitlementChecks {
             case ReflectionEntitlement r -> reflectionEntitlements
                     .computeIfAbsent(module, k -> newSetFromMap(new ConcurrentHashMap<>()))
                     .add(r);
+            case FlagEntitlement f -> flagEntitlements
+                    .computeIfAbsent(module, k -> newSetFromMap(new ConcurrentHashMap<>())) // Yeesh... try to use EnumSet safely. Perhaps only allow grants when not active?
+                    .add(f);
         };
     }
 
+    private static boolean isTriviallyAllowed(Class<?> callingClass) {
+        return !isActive || (callingClass.getClassLoader() == null);
+    }
+
     public static void checkFileEntitlement(Class<?> callingClass, File file, OperationKind operation) {
-        if (!isActive) {
+        if (isTriviallyAllowed(callingClass)) {
             return;
         }
         for (var e: fileEntitlements.getOrDefault(callingClass.getModule(), emptySet())) {
@@ -61,8 +67,7 @@ public class EntitlementChecks {
     }
 
     public static void checkReflectionEntitlement(Class<?> callingClass) {
-        var loader = callingClass.getClassLoader();
-        if (isTriviallyAllowed(loader)) {
+        if (isTriviallyAllowed(callingClass)) {
             return;
         }
         for (var e: reflectionEntitlements.getOrDefault(callingClass.getModule(), emptySet())) {
@@ -73,7 +78,13 @@ public class EntitlementChecks {
         throw new NotEntitledException("Missing reflection entitlement for " + callingClass.getName());
     }
 
-    private static boolean isTriviallyAllowed(ClassLoader loader) {
-        return !isActive || (loader == null);
+    public static void checkFlagEntitlement(Class<?> callingClass, FlagEntitlement flag) {
+        if (isTriviallyAllowed(callingClass)) {
+            return;
+        }
+        if (flagEntitlements.getOrDefault(callingClass.getModule(), emptySet()).contains(flag)) {
+            return;
+        }
+        throw new NotEntitledException("Missing " + flag + " entitlement for " + callingClass.getName());
     }
 }
