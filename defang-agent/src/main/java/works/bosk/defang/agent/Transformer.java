@@ -41,11 +41,10 @@ public class Transformer implements ClassFileTransformer {
     @Override
     public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined,
                             ProtectionDomain protectionDomain, byte[] classfileBuffer) {
-        if (classBeingRedefined != null) {
-            System.out.println("Hey we're redefining " + classBeingRedefined);
-        }
         if (!classesToTransform.contains(className)) {
             return classfileBuffer;
+        } else if (classBeingRedefined != null) {
+            System.out.println("Hey we're redefining " + classBeingRedefined);
         }
         ClassReader reader = new ClassReader(classfileBuffer);
         ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);

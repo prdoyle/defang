@@ -12,7 +12,6 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static works.bosk.defang.agent.ASMUtils.bytecode2text;
-import static works.bosk.defang.agent.ConfigScanner.methodKey;
 
 public class TransformerTest {
     public interface Helloable {
@@ -27,7 +26,7 @@ public class TransformerTest {
 
     public static class Config {
         @InstanceMethod
-        public void hello(Class<?> callerClass, ClassToInstrument receiver) {
+        public static void hello(Class<?> callerClass, Helloable receiver) {
             throw new NotEntitledException("nope");
         }
 
@@ -35,10 +34,17 @@ public class TransformerTest {
 
     @Test
     void test() throws NoSuchMethodException, IOException {
-        var helloMethod = Config.class.getMethod("hello", Class.class, ClassToInstrument.class);
+        // This test doesn't replace ClassToInstrument in-place but instead loads a separate
+        // class ClassToInstrument_NEW that contains the instrumentation. Because of this,
+        // we need to configure the Transformer to use a MethodKey and instrumentationMethod
+        // with slightly different signatures (using the common interface Helloable) which
+        // is not what would happen when it's run by the agent.
+        var targetMethod = ClassToInstrument.class.getMethod("hello");
+        var instrumentationMethod = Config.class.getMethod("hello", Class.class, Helloable.class);
+
         var transformer = new Transformer(
                 Set.of(Type.getInternalName(ClassToInstrument.class)),
-                Map.of(methodKey(helloMethod), helloMethod),
+                Map.of(MethodKey.forTargetMethod(targetMethod), instrumentationMethod),
                 "_NEW");
         var classFileName = "/" + Type.getInternalName(ClassToInstrument.class) + ".class";
         byte[] oldBytecode;
