@@ -3,4 +3,5 @@ module defang.agent {
     requires defang.runtime;
     requires org.objectweb.asm;
     requires org.objectweb.asm.util;
+    requires org.slf4j;
 }

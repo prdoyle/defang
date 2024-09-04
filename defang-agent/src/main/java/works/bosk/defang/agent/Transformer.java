@@ -7,6 +7,8 @@ import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.reflect.Method;
@@ -42,9 +44,8 @@ public class Transformer implements ClassFileTransformer {
     public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined,
                             ProtectionDomain protectionDomain, byte[] classfileBuffer) {
         if (!classesToTransform.contains(className)) {
+            LOGGER.trace("Not transforming {}", className);
             return classfileBuffer;
-        } else if (classBeingRedefined != null) {
-            System.out.println("Hey we're redefining " + classBeingRedefined);
         }
         ClassReader reader = new ClassReader(classfileBuffer);
         ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
@@ -73,10 +74,10 @@ public class Transformer implements ClassFileTransformer {
             var key = new MethodKey(className, name, voidDescriptor);
             var instrumentationMethod = instrumentationMethods.get(key);
             if (instrumentationMethod != null) {
-                System.out.println("Transformer: Matched key: " + key);
+                LOGGER.debug("Will instrument method {}", key);
                 return new EntitlementMethodVisitor(Opcodes.ASM9, mv, descriptor, instrumentationMethod);
             } else {
-//                System.out.println("No match for key: " + key);
+                LOGGER.trace("Will not instrument method {}", key);
             }
             return mv;
         }
@@ -141,4 +142,5 @@ public class Transformer implements ClassFileTransformer {
         }
     }
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(Transformer.class);
 }

@@ -21,24 +21,20 @@ dependencies {
     implementation 'org.ow2.asm:asm:9.6'
     implementation 'org.ow2.asm:asm-commons:9.6'
     implementation 'org.ow2.asm:asm-util:9.6'
+    implementation 'ch.qos.logback:logback-classic:1.5.7'
     implementation project(":defang-runtime")
     testImplementation platform('org.junit:junit-bom:5.10.0')
     testImplementation 'org.junit.jupiter:junit-jupiter'
-
     testImplementation 'org.openjdk.jmh:jmh-core:1.37'
     testAnnotationProcessor 'org.openjdk.jmh:jmh-generator-annprocess:1.37'
 }
 
 test {
-    System.out.println "build.gradle --- got here!"
     dependsOn(jar)
     useJUnitPlatform()
-    if (!testClassesDirs.asFileTree.matching { include 'works/bosk/defang/agent/AgentTest.class' }.isEmpty()) {
-        def runtimeJars = configurations.defangRuntime.files.stream().map(File::toString).collect(joining(File.pathSeparator))
-        jvmArgs "-Ddefang.runtimeJars=$runtimeJars"
-        jvmArgs "-javaagent:${jar.archiveFile.get().asFile}"
-        print "!!!!!!!!!! jvmArgs: " + jvmArgs
-    }
+    def runtimeJars = configurations.defangRuntime.files.stream().map(File::toString).collect(joining(File.pathSeparator))
+    jvmArgs "-Ddefang.runtimeJars=$runtimeJars"
+    jvmArgs "-javaagent:${jar.archiveFile.get().asFile}"
 }
 
 

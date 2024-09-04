@@ -2,6 +2,8 @@ package works.bosk.defang.agent;
 
 import org.junit.jupiter.api.Test;
 import org.objectweb.asm.Type;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import works.bosk.defang.api.NotEntitledException;
 import works.bosk.defang.runtime.InstanceMethod;
 
@@ -52,7 +54,9 @@ public class TransformerTest {
             assert stream != null;
             oldBytecode = stream.readAllBytes();
         }
-        System.out.println("Before transformation: \n" + bytecode2text(oldBytecode));
+        if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace("Before transformation: \n{}", bytecode2text(oldBytecode));
+        }
 
         byte[] newBytecode = transformer.transform(
                 ClassToInstrument.class.getClassLoader(),
@@ -61,7 +65,9 @@ public class TransformerTest {
                 null,
                 oldBytecode
         );
-        System.out.println("After transformation: \n" + bytecode2text(newBytecode));
+        if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace("After transformation: \n{}", bytecode2text(newBytecode));
+        }
 
         Class<?> newClass = new TestLoader(Helloable.class.getClassLoader()).defineClassFromBytes(ClassToInstrument.class.getName() + "_NEW", newBytecode);
 
@@ -78,4 +84,6 @@ public class TransformerTest {
             return defineClass(name, bytes, 0, bytes.length);
         }
     }
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(TransformerTest.class);
 }

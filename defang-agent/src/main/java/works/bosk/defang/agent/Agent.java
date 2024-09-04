@@ -1,6 +1,8 @@
 package works.bosk.defang.agent;
 
 import org.objectweb.asm.Type;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import works.bosk.defang.runtime.config.FilesystemMethods;
 import works.bosk.defang.runtime.config.ReflectionMethods;
 
@@ -14,7 +16,7 @@ import static java.util.stream.Collectors.toSet;
 
 public class Agent {
     public static void premain(String agentArgs, Instrumentation inst) throws UnmodifiableClassException, IOException {
-        System.out.println("Agent: Starting premain");
+        LOGGER.trace("Starting premain");
         var jarsString = System.getProperty("defang.runtimeJars");
         if (jarsString != null) {
             for (var jar : jarsString.split(File.pathSeparator)) {
@@ -28,9 +30,10 @@ public class Agent {
                 scanResults.classesToRetransform().stream().map(Type::getInternalName).collect(toSet()),
                 scanResults.instrumentationMethods()),
                 true);
-        System.out.println("Agent: Starting retransformClasses");
+        LOGGER.trace("Starting retransformClasses");
         inst.retransformClasses(scanResults.classesToRetransform().toArray(new Class[0]));
-        System.out.println("Agent: All done!");
+        LOGGER.trace("All done!");
     }
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(Agent.class);
 }
