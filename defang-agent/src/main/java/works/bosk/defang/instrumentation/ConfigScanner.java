@@ -1,4 +1,4 @@
-package works.bosk.defang.agent;
+package works.bosk.defang.instrumentation;
 
 import works.bosk.defang.runtime.InstanceMethod;
 import works.bosk.defang.runtime.StaticMethod;
@@ -9,8 +9,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-class ConfigScanner {
-    static ScanResults scanConfig(Class<?>... configClasses) {
+public class ConfigScanner {
+    public static ScanResults scanConfig(Class<?>... configClasses) {
         var classesToRetransform = new HashSet<Class<?>>();
         var methods = new HashMap<MethodKey, Method>();
         for (var config : configClasses) {
@@ -34,6 +34,6 @@ class ConfigScanner {
         return new ScanResults(methods, classesToRetransform);
     }
 
-    record ScanResults(Map<MethodKey, Method> instrumentationMethods, Set<Class<?>> classesToRetransform) {
+    public record ScanResults(Map<MethodKey, Method> instrumentationMethods, Set<Class<?>> classesToRetransform) {
     }
 }

@@ -1,4 +1,4 @@
-package works.bosk.defang.agent;
+package works.bosk.defang.instrumentation;
 
 import org.objectweb.asm.Type;
 

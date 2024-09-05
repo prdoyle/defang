@@ -3,6 +3,8 @@ package works.bosk.defang.agent;
 import org.objectweb.asm.Type;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import works.bosk.defang.instrumentation.ConfigScanner;
+import works.bosk.defang.instrumentation.Instrumenter;
 import works.bosk.defang.runtime.config.FilesystemMethods;
 import works.bosk.defang.runtime.config.ReflectionMethods;
 import works.bosk.defang.runtime.config.SystemMethods;
@@ -31,9 +33,9 @@ public class Agent {
                 SystemMethods.class
         );
         inst.addTransformer(new Transformer(
-                scanResults.classesToRetransform().stream().map(Type::getInternalName).collect(toSet()),
-                scanResults.instrumentationMethods()),
-                true);
+            new Instrumenter("", scanResults.instrumentationMethods()),
+            scanResults.classesToRetransform().stream().map(Type::getInternalName).collect(toSet())),
+            true);
         LOGGER.trace("Starting retransformClasses");
         inst.retransformClasses(scanResults.classesToRetransform().toArray(new Class[0]));
         LOGGER.trace("All done!");

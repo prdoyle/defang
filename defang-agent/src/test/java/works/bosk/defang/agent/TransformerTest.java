@@ -5,6 +5,8 @@ import org.objectweb.asm.Type;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import works.bosk.defang.api.NotEntitledException;
+import works.bosk.defang.instrumentation.Instrumenter;
+import works.bosk.defang.instrumentation.MethodKey;
 import works.bosk.defang.runtime.InstanceMethod;
 import works.bosk.defang.runtime.StaticMethod;
 
@@ -57,13 +59,10 @@ public class TransformerTest {
         Method v1 = Config.class.getMethod("hello", Class.class, Helloable.class);
         MethodKey k2 = MethodKey.forTargetMethod(ClassToInstrument.class.getMethod("staticHello"));
         Method v2 = Config.class.getMethod("staticHello", Class.class, Helloable.class);
-        var transformer = new Transformer(
-                Set.of(Type.getInternalName(ClassToInstrument.class)),
-                Map.of(
-                        k1, v1,
-                        k2, v2
-                ),
-                "_NEW");
+        var transformer = new Transformer(new Instrumenter("_NEW", Map.of(
+                                k1, v1,
+                                k2, v2
+                        )), Set.of(Type.getInternalName(ClassToInstrument.class)));
         var classFileName = "/" + Type.getInternalName(ClassToInstrument.class) + ".class";
         byte[] oldBytecode;
         try (var stream = ClassToInstrument.class.getResourceAsStream(classFileName)) {
