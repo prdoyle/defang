@@ -5,9 +5,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import works.bosk.defang.instrumentation.ConfigScanner;
 import works.bosk.defang.instrumentation.Instrumenter;
-import works.bosk.defang.runtime.config.FilesystemMethods;
-import works.bosk.defang.runtime.config.ReflectionMethods;
-import works.bosk.defang.runtime.config.SystemMethods;
 
 import java.io.File;
 import java.io.IOException;
@@ -16,6 +13,7 @@ import java.lang.instrument.UnmodifiableClassException;
 import java.util.jar.JarFile;
 
 import static java.util.stream.Collectors.toSet;
+import static works.bosk.defang.runtime.Config.CONFIG_CLASSES;
 
 public class Agent {
     public static void premain(String agentArgs, Instrumentation inst) throws UnmodifiableClassException, IOException {
@@ -26,18 +24,13 @@ public class Agent {
                 inst.appendToBootstrapClassLoaderSearch(new JarFile(jar));
             }
         }
-        var scanResults = ConfigScanner.scanConfig(
-                ReflectionMethods.class,
-                FilesystemMethods.class,
-                ReflectionMethods.class,
-                SystemMethods.class
-        );
+        var scanResults = ConfigScanner.scanConfig(CONFIG_CLASSES);
         inst.addTransformer(new Transformer(
             new Instrumenter("", scanResults.instrumentationMethods()),
-            scanResults.classesToRetransform().stream().map(Type::getInternalName).collect(toSet())),
+            scanResults.classesToInstrument().stream().map(Type::getInternalName).collect(toSet())),
             true);
         LOGGER.trace("Starting retransformClasses");
-        inst.retransformClasses(scanResults.classesToRetransform().toArray(new Class[0]));
+        inst.retransformClasses(scanResults.classesToInstrument().toArray(new Class[0]));
         LOGGER.trace("All done!");
     }
 

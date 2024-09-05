@@ -10,8 +10,8 @@ import java.util.Map;
 import java.util.Set;
 
 public class ConfigScanner {
-    public static ScanResults scanConfig(Class<?>... configClasses) {
-        var classesToRetransform = new HashSet<Class<?>>();
+    public static ScanResults scanConfig(Iterable<Class<?>> configClasses) {
+        var classesToInstrument = new HashSet<Class<?>>();
         var methods = new HashMap<MethodKey, Method>();
         for (var config : configClasses) {
             for (Method instrumentationMethod : config.getDeclaredMethods()) {
@@ -28,12 +28,12 @@ public class ConfigScanner {
                     throw new IllegalStateException("First parameter of instrumentation method should be the caller class");
                 }
                 methods.put(MethodKey.forCorrespondingTargetMethod(instrumentationMethod, sm != null), instrumentationMethod);
-                classesToRetransform.add(instrumentationMethod.getParameterTypes()[1]);
+                classesToInstrument.add(instrumentationMethod.getParameterTypes()[1]);
             }
         }
-        return new ScanResults(methods, classesToRetransform);
+        return new ScanResults(methods, classesToInstrument);
     }
 
-    public record ScanResults(Map<MethodKey, Method> instrumentationMethods, Set<Class<?>> classesToRetransform) {
+    public record ScanResults(Map<MethodKey, Method> instrumentationMethods, Set<Class<?>> classesToInstrument) {
     }
 }
