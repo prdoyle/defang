@@ -10,6 +10,8 @@ import org.objectweb.asm.Type;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Method;
 import java.util.Map;
 
@@ -30,6 +32,24 @@ public class Instrumenter {
     public Instrumenter(String classNameSuffix, Map<MethodKey, Method> instrumentationMethods) {
         this.classNameSuffix = classNameSuffix;
         this.instrumentationMethods = instrumentationMethods;
+    }
+
+    public ClassFileInfo instrumentClassFile(Class<?> clazz) throws IOException {
+        ClassFileInfo initial = getClassFileInfo(clazz);
+        return new ClassFileInfo(initial.fileName(), instrumentClass(Type.getInternalName(clazz), initial.bytecodes()));
+    }
+
+    public static ClassFileInfo getClassFileInfo(Class<?> clazz) throws IOException {
+        String internalName = Type.getInternalName(clazz);
+        String fileName = "/" + internalName + ".class";
+        byte[] originalBytecodes;
+        try (InputStream classStream = clazz.getResourceAsStream(fileName)) {
+            if (classStream == null) {
+                throw new IllegalStateException("Classfile not found in jar: " + fileName);
+            }
+            originalBytecodes = classStream.readAllBytes();
+        }
+        return new ClassFileInfo(fileName, originalBytecodes);
     }
 
     public byte[] instrumentClass(String className, byte[] classfileBuffer) {
@@ -136,4 +156,6 @@ public class Instrumenter {
     }
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Instrumenter.class);
+
+    public record ClassFileInfo(String fileName, byte[] bytecodes) { }
 }

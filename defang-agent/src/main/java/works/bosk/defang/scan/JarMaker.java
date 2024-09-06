@@ -1,11 +1,9 @@
 package works.bosk.defang.scan;
 
-import org.objectweb.asm.Type;
 import works.bosk.defang.instrumentation.ConfigScanner;
 import works.bosk.defang.instrumentation.Instrumenter;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URI;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
@@ -27,19 +25,12 @@ public class JarMaker {
         URI jarURI = URI.create("jar:" + outputJarPath.toUri());
         try (FileSystem jar = FileSystems.newFileSystem(jarURI, Map.of("create", "true"))) {
             for (var clazz: scanResults.classesToInstrument()) {
-                String internalName = Type.getInternalName(clazz);
-                String fileName = "/" + internalName + ".class";
-                try (InputStream classStream = clazz.getResourceAsStream(fileName)) {
-                    if (classStream == null) {
-                        throw new IllegalStateException("Classfile not found in jar: " + fileName);
-                    }
-                    byte[] modifiedClass = instrumenter.instrumentClass(internalName, classStream.readAllBytes());
-
-                    Path filePath = jar.getPath(fileName);
-                    Files.createDirectories(filePath.getParent());
-                    Files.write(filePath, modifiedClass);
-                }
+                Instrumenter.ClassFileInfo i = instrumenter.instrumentClassFile(clazz);
+                Path filePath = jar.getPath(i.fileName());
+                Files.createDirectories(filePath.getParent());
+                Files.write(filePath, i.bytecodes());
             }
         }
     }
+
 }
