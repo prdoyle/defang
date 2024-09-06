@@ -4,7 +4,6 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
 import static java.lang.annotation.ElementType.METHOD;
-import static java.lang.annotation.ElementType.TYPE;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 /**
@@ -28,7 +27,7 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
  * with the same name and return type, and the same parameters plus an additional
  * parameter at the start whose type is the owning class of the target method.
  */
-@Target({METHOD, TYPE})
+@Target(METHOD)
 @Retention(RUNTIME)
 public @interface InstanceMethod {
 }
