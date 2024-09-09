@@ -49,11 +49,24 @@ public class EntitlementChecks {
         };
     }
 
+    private static Class<?> getCallingClass(int additionalFramesToSkip) {
+        int framesToSkip =
+                 1  // getCallingClass (this method)
+                +1  // the checkXxx method
+                +1  // the runtime config method
+                +1  // the instrumented method
+                +additionalFramesToSkip;
+        // TODO: Skip JDK frames
+        StackWalker.StackFrame frame = StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).walk(s -> s.skip(framesToSkip).findFirst()).get();
+        return frame.getDeclaringClass();
+    }
+
     private static boolean isTriviallyAllowed(Class<?> callingClass) {
         return !isActive || (callingClass.getClassLoader() == null);
     }
 
-    public static void checkFileEntitlement(Class<?> callingClass, File file, OperationKind operation) {
+    public static void checkFileEntitlement(File file, OperationKind operation) {
+        var callingClass = getCallingClass(0);
         if (isTriviallyAllowed(callingClass)) {
             return;
         }
@@ -66,7 +79,8 @@ public class EntitlementChecks {
                 + operation + " \"" + file + "\"");
     }
 
-    public static void checkReflectionEntitlement(Class<?> callingClass) {
+    public static void checkReflectionEntitlement() {
+        var callingClass = getCallingClass(0);
         if (isTriviallyAllowed(callingClass)) {
             return;
         }
@@ -78,7 +92,8 @@ public class EntitlementChecks {
         throw new NotEntitledException("Missing reflection entitlement for " + callingClass.getName());
     }
 
-    public static void checkFlagEntitlement(Class<?> callingClass, FlagEntitlement flag) {
+    public static void checkFlagEntitlement(FlagEntitlement flag) {
+        var callingClass = getCallingClass(0);
         if (isTriviallyAllowed(callingClass)) {
             return;
         }

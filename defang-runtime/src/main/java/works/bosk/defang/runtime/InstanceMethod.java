@@ -16,10 +16,7 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
  *         The method should return {@code void}
  *     </li>
  *     <li>
- *         The first argument should be {@code Class<?> callingClass}
- *     </li>
- *     <li>
- *         The second argument's type should be the target method's declaring class;
+ *         The first argument's type should be the target method's declaring class;
  *         this is the receiver object of the nonstatic call.
  *     </li>
  * </ul>

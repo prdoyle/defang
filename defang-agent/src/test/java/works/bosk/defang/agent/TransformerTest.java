@@ -37,12 +37,12 @@ public class TransformerTest {
 
     public static class Config {
         @InstanceMethod
-        public static void hello(Class<?> callerClass, Helloable receiver) {
+        public static void hello(Helloable receiver) {
             throw new NotEntitledException("nope");
         }
 
         @StaticMethod
-        public static void staticHello(Class<?> callerClass, Helloable declaringClass) {
+        public static void staticHello(Helloable declaringClass) {
             throw new NotEntitledException("nuh uh");
         }
     }
@@ -56,9 +56,9 @@ public class TransformerTest {
         // is not what would happen when it's run by the agent.
 
         MethodKey k1 = MethodKey.forTargetMethod(ClassToInstrument.class.getMethod("hello"));
-        Method v1 = Config.class.getMethod("hello", Class.class, Helloable.class);
+        Method v1 = Config.class.getMethod("hello", Helloable.class);
         MethodKey k2 = MethodKey.forTargetMethod(ClassToInstrument.class.getMethod("staticHello"));
-        Method v2 = Config.class.getMethod("staticHello", Class.class, Helloable.class);
+        Method v2 = Config.class.getMethod("staticHello", Helloable.class);
         var transformer = new Transformer(new Instrumenter("_NEW", Map.of(
                                 k1, v1,
                                 k2, v2

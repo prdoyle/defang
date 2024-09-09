@@ -7,12 +7,12 @@ import java.lang.reflect.Method;
 
 public class ReflectionMethods {
     @InstanceMethod
-    public static void getDeclaredMethod(Class<?> callingClass, Class<?> c, String name, Class<?>... parameterTypes) {
-        EntitlementChecks.checkReflectionEntitlement(callingClass);
+    public static void getDeclaredMethod(Class<?> c, String name, Class<?>... parameterTypes) {
+        EntitlementChecks.checkReflectionEntitlement();
     }
 
     @InstanceMethod
-    public static void getDeclaredMethods(Class<?> callingClass, Class<?> c) {
-        EntitlementChecks.checkReflectionEntitlement(callingClass);
+    public static void getDeclaredMethods(Class<?> c) {
+        EntitlementChecks.checkReflectionEntitlement();
     }
 }

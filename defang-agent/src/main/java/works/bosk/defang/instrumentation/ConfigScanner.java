@@ -20,15 +20,12 @@ public class ConfigScanner {
                 if (im == null && sm == null) {
                     continue;
                 }
-                if (instrumentationMethod.getParameterTypes().length < 2) {
-                    throw new IllegalStateException("Instrumentation method's parameters should include at least the caller class and "
+                if (instrumentationMethod.getParameterTypes().length < 1) {
+                    throw new IllegalStateException("Instrumentation method's parameters should include at least the "
                             + ((im != null)? "receiver object" : "declaring class"));
                 }
-                if (!instrumentationMethod.getParameterTypes()[0].equals(Class.class)) {
-                    throw new IllegalStateException("First parameter of instrumentation method should be the caller class");
-                }
                 methods.put(MethodKey.forCorrespondingTargetMethod(instrumentationMethod, sm != null), instrumentationMethod);
-                classesToInstrument.add(instrumentationMethod.getParameterTypes()[1]);
+                classesToInstrument.add(instrumentationMethod.getParameterTypes()[0]);
             }
         }
         return new ScanResults(methods, classesToInstrument);

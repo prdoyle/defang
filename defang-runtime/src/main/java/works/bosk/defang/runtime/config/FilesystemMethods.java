@@ -9,7 +9,7 @@ import static works.bosk.defang.api.OperationKind.WRITE;
 
 public class FilesystemMethods {
     @InstanceMethod
-    public static void delete(Class<?> callerClass, File file) {
-        EntitlementChecks.checkFileEntitlement(callerClass, file, WRITE);
+    public static void delete(File file) {
+        EntitlementChecks.checkFileEntitlement(file, WRITE);
     }
 }

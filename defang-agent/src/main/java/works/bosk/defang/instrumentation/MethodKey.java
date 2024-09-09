@@ -23,9 +23,9 @@ public record MethodKey(
     }
 
     public static MethodKey forCorrespondingTargetMethod(Method instrumentationMethod, boolean isStatic) {
-        Class<?> targetClass = instrumentationMethod.getParameterTypes()[1];
+        Class<?> targetClass = instrumentationMethod.getParameterTypes()[0];
         Type[] targetParameters = Stream.of(instrumentationMethod.getParameterTypes())
-                .skip(2)
+                .skip(1)
                 .map(Type::getType)
                 .toArray(Type[]::new);
         String targetDescriptor = Type.getMethodDescriptor(
