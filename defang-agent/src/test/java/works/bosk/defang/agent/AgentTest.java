@@ -44,6 +44,7 @@ public class AgentTest {
 
     @Test
     public void notEntitled_throws() {
+        EntitlementChecks.grant(getClass().getModule(), new FileEntitlement(new File("wrong-file"), WRITE));
         assertThrows(NotEntitledException.class, file::delete);
         assertThrows(NotEntitledException.class, () -> assertNotNull(getClass().getDeclaredMethod("entitled_works")));
         assertThrows(NotEntitledException.class, getClass()::getDeclaredMethods);
