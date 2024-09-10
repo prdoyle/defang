@@ -1,6 +1,8 @@
 package works.bosk.defang.instrumentation;
 
 import org.objectweb.asm.Type;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import works.bosk.defang.runtime.InstrumentedParameter;
 
 import java.lang.reflect.Method;
@@ -25,6 +27,7 @@ public record MethodKey(
     }
 
     public static MethodKey forCorrespondingTargetMethod(Method instrumentationMethod, boolean isStatic) {
+        LOGGER.trace("Instrumentation method " + instrumentationMethod);
         Type declaringType = parameterType(instrumentationMethod.getParameters()[0]);
         Type[] targetParameters = Stream.of(instrumentationMethod.getParameters())
                 .skip(1)
@@ -44,12 +47,16 @@ public record MethodKey(
     private static Type parameterType(Parameter p) {
         var annotation = p.getAnnotation(InstrumentedParameter.class);
         if (annotation == null || "".equals(annotation.className())) {
+            LOGGER.trace("Using actual type for " + p);
             return Type.getType(p.getType());
         } else {
             if (p.getType().isPrimitive()) {
                 throw new IllegalStateException("Primitive parameters must not be annotated with @InstrumentedParameter: " + p);
             }
+            LOGGER.trace("Using class name \"" + annotation.className() + "\" for " + p);
             return Type.getObjectType(annotation.className().replace('.', '/'));
         }
     }
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(MethodKey.class);
 }

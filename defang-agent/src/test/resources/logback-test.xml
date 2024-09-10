@@ -12,7 +12,7 @@
     </appender>
 
     <!--
-    <logger name="works.bosk.defang.agent.Agent" level="DEBUG"/>
+    <logger name="works.bosk.defang.instrumentation.ConfigScanner" level="DEBUG"/>
     -->
 
     <root level="debug">
