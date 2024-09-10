@@ -27,7 +27,7 @@ public class SystemMethods {
     }
 
     @InstrumentationMethod(isStatic = true)
-    public static void halt(@InstrumentedParameter(className = "java.lang.Shutdown") Object shutdown, int status) {
+    public static void halt0(@InstrumentedParameter(className = "java.lang.Shutdown") Object shutdown, int status) {
         EntitlementChecks.checkFlagEntitlement(EXIT);
     }
 }

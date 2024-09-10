@@ -17,12 +17,13 @@ import java.util.Map;
 
 import static org.objectweb.asm.ClassWriter.COMPUTE_FRAMES;
 import static org.objectweb.asm.ClassWriter.COMPUTE_MAXS;
+import static org.objectweb.asm.Opcodes.ACC_NATIVE;
 import static org.objectweb.asm.Opcodes.ACC_STATIC;
-import static org.objectweb.asm.Opcodes.GETSTATIC;
 import static org.objectweb.asm.Opcodes.INVOKESTATIC;
 import static org.objectweb.asm.Opcodes.INVOKEVIRTUAL;
 
 public class Instrumenter {
+    public static final String NATIVE_METHOD_PREFIX = "$DEFANG$_";
     /**
      * To avoid class name collisions during testing. Should be an empty string in production.
      */
@@ -77,12 +78,13 @@ public class Instrumenter {
         public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
             var mv = super.visitMethod(access, name, descriptor, signature, exceptions);
             boolean isStatic = (access & ACC_STATIC) != 0;
+            boolean isNative = (access & ACC_NATIVE) != 0;
             var voidDescriptor = Type.getMethodDescriptor(Type.VOID_TYPE, Type.getArgumentTypes(descriptor));
             var key = new MethodKey(className, name, voidDescriptor, isStatic);
             var instrumentationMethod = instrumentationMethods.get(key);
             if (instrumentationMethod != null) {
-                LOGGER.debug("Will instrument method {}", key);
-                return new EntitlementMethodVisitor(Opcodes.ASM9, mv, isStatic, descriptor, instrumentationMethod);
+                LOGGER.debug("Will instrument {}{}method {}", isStatic? "static ":"", isNative? "native ":"", key);
+                return new EntitlementMethodVisitor(Opcodes.ASM9, mv, access, descriptor, instrumentationMethod);
             } else {
                 LOGGER.trace("Will not instrument method {}", key);
             }
@@ -92,40 +94,31 @@ public class Instrumenter {
 
     static class EntitlementMethodVisitor extends MethodVisitor {
         private final boolean instrumentedMethodIsStatic;
+        private final boolean instrumentedMethodIsNative;
         private final String instrumentedMethodDescriptor;
         private final Method instrumentationMethod;
-        private boolean hasCallerSensitiveAnnotation = false;
 
-        EntitlementMethodVisitor(int api, MethodVisitor methodVisitor, boolean instrumentedMethodIsStatic, String instrumentedMethodDescriptor, Method instrumentationMethod) {
+        EntitlementMethodVisitor(int api, MethodVisitor methodVisitor, int access, String instrumentedMethodDescriptor, Method instrumentationMethod) {
             super(api, methodVisitor);
-            this.instrumentedMethodIsStatic = instrumentedMethodIsStatic;
+            this.instrumentedMethodIsStatic = (access & ACC_STATIC) != 0;
+            this.instrumentedMethodIsNative = (access & ACC_NATIVE) != 0;
             this.instrumentedMethodDescriptor = instrumentedMethodDescriptor;
             this.instrumentationMethod = instrumentationMethod;
         }
 
         @Override
         public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
-            if (visible && descriptor.endsWith("CallerSensitive;")) {
-                hasCallerSensitiveAnnotation = true;
-            }
             return super.visitAnnotation(descriptor, visible);
         }
 
         @Override
         public void visitCode() {
-//            pushCallerClass();
             forwardIncomingArguments();
             invokeInstrumentationMethod();
-            super.visitCode();
-        }
-
-        private void pushCallerClass() {
-            if (hasCallerSensitiveAnnotation) {
-                mv.visitMethodInsn(INVOKESTATIC, "jdk/internal/reflect/Reflection", "getCallerClass", "()Ljava/lang/Class;", false);
+            if (instrumentedMethodIsNative) {
+                invokeNativeMethod();
             } else {
-                mv.visitFieldInsn(GETSTATIC, "java/lang/StackWalker$Option", "RETAIN_CLASS_REFERENCE", "Ljava/lang/StackWalker$Option;");
-                mv.visitMethodInsn(INVOKESTATIC, "java/lang/StackWalker", "getInstance", "(Ljava/lang/StackWalker$Option;)Ljava/lang/StackWalker;", false);
-                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StackWalker", "getCallerClass", "()Ljava/lang/Class;", false);
+                super.visitCode();
             }
         }
 
@@ -152,6 +145,25 @@ public class Instrumenter {
                     instrumentationMethod.getName(),
                     Type.getMethodDescriptor(instrumentationMethod),
                     false);
+        }
+
+        private void invokeNativeMethod() {
+            if (instrumentedMethodIsStatic) {
+                mv.visitMethodInsn(
+                        INVOKESTATIC,
+                        Type.getInternalName(instrumentationMethod.getDeclaringClass()),
+                        NATIVE_METHOD_PREFIX + instrumentationMethod.getName(),
+                        Type.getMethodDescriptor(instrumentationMethod),
+                        false);
+            } else {
+                mv.visitVarInsn(Opcodes.ALOAD, 0);
+                mv.visitMethodInsn(
+                        INVOKEVIRTUAL,
+                        Type.getInternalName(instrumentationMethod.getDeclaringClass()),
+                        NATIVE_METHOD_PREFIX + instrumentationMethod.getName(),
+                        Type.getMethodDescriptor(instrumentationMethod),
+                        false);
+            }
         }
     }
 

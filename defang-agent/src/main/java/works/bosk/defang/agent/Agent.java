@@ -25,10 +25,11 @@ public class Agent {
             }
         }
         var scanResults = ConfigScanner.scanConfig(CONFIG_CLASSES);
-        inst.addTransformer(new Transformer(
-            new Instrumenter("", scanResults.instrumentationMethods()),
-            scanResults.classesToInstrument().stream().map(Type::getInternalName).collect(toSet())),
-            true);
+        Transformer transformer = new Transformer(
+                new Instrumenter("", scanResults.instrumentationMethods()),
+                scanResults.classesToInstrument().stream().map(Type::getInternalName).collect(toSet()));
+        inst.addTransformer(transformer, true);
+        inst.setNativeMethodPrefix(transformer, Instrumenter.NATIVE_METHOD_PREFIX);
         LOGGER.trace("Starting retransformClasses");
         inst.retransformClasses(scanResults.classesToInstrument().toArray(new Class[0]));
         LOGGER.trace("All done!");
