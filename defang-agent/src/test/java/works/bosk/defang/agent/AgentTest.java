@@ -53,6 +53,7 @@ public class AgentTest {
         assertThrows(NotEntitledException.class, () -> System.setErr(System.err));
         EntitlementChecks.grant(getClass().getModule(), new ReflectionEntitlement());
         assertThrows(NotEntitledException.class, file::delete, "Wrong permission");
+        assertThrows(NotEntitledException.class, () -> System.exit(123));
     }
 
     @Test
