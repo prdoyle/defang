@@ -9,6 +9,7 @@ import works.bosk.defang.api.ReflectionEntitlement;
 
 import java.io.File;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -49,57 +50,60 @@ public class EntitlementChecks {
         };
     }
 
-    private static Class<?> getCallingClass(int additionalFramesToSkip) {
+    private static Module requestingModule(int additionalFramesToSkip) {
         int framesToSkip =
                  1  // getCallingClass (this method)
                 +1  // the checkXxx method
                 +1  // the runtime config method
                 +1  // the instrumented method
                 +additionalFramesToSkip;
-        // TODO: Skip JDK frames
-        StackWalker.StackFrame frame = StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).walk(s -> s.skip(framesToSkip).findFirst()).get();
-        return frame.getDeclaringClass();
+        Optional<Module> module = StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).walk(s -> s
+                .skip(framesToSkip)
+                .map(f -> f.getDeclaringClass().getModule())
+                .filter(m -> m.getLayer() != ModuleLayer.boot())
+                .findFirst());
+        return module.orElse(null);
     }
 
-    private static boolean isTriviallyAllowed(Class<?> callingClass) {
-        return !isActive || (callingClass.getClassLoader() == null);
+    private static boolean isTriviallyAllowed(Module requestingModule) {
+        return !isActive || (requestingModule == null) || requestingModule == EntitlementChecks.class.getModule();
     }
 
     public static void checkFileEntitlement(File file, OperationKind operation) {
-        var callingClass = getCallingClass(0);
-        if (isTriviallyAllowed(callingClass)) {
+        var requestingModule = requestingModule(0);
+        if (isTriviallyAllowed(requestingModule)) {
             return;
         }
-        for (var e: fileEntitlements.getOrDefault(callingClass.getModule(), emptySet())) {
+        for (var e: fileEntitlements.getOrDefault(requestingModule, emptySet())) {
             if (e.allows(file, operation)) {
                 return;
             }
         }
-        throw new NotEntitledException("Missing file entitlement for " + callingClass.getName() + " "
+        throw new NotEntitledException("Missing file entitlement for " + requestingModule + " "
                 + operation + " \"" + file + "\"");
     }
 
     public static void checkReflectionEntitlement() {
-        var callingClass = getCallingClass(0);
-        if (isTriviallyAllowed(callingClass)) {
+        var requestingModule = requestingModule(0);
+        if (isTriviallyAllowed(requestingModule)) {
             return;
         }
-        for (var e: reflectionEntitlements.getOrDefault(callingClass.getModule(), emptySet())) {
+        for (var e: reflectionEntitlements.getOrDefault(requestingModule, emptySet())) {
             if (e.allows()) {
                 return;
             }
         }
-        throw new NotEntitledException("Missing reflection entitlement for " + callingClass.getName());
+        throw new NotEntitledException("Missing reflection entitlement for " + requestingModule);
     }
 
     public static void checkFlagEntitlement(FlagEntitlement flag) {
-        var callingClass = getCallingClass(0);
-        if (isTriviallyAllowed(callingClass)) {
+        var requestingModule = requestingModule(0);
+        if (isTriviallyAllowed(requestingModule)) {
             return;
         }
-        if (flagEntitlements.getOrDefault(callingClass.getModule(), emptySet()).contains(flag)) {
+        if (flagEntitlements.getOrDefault(requestingModule, emptySet()).contains(flag)) {
             return;
         }
-        throw new NotEntitledException("Missing " + flag + " entitlement for " + callingClass.getName());
+        throw new NotEntitledException("Missing " + flag + " entitlement for " + requestingModule);
     }
 }
