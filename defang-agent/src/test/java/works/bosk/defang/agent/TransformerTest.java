@@ -8,6 +8,7 @@ import works.bosk.defang.api.NotEntitledException;
 import works.bosk.defang.instrumentation.Instrumenter;
 import works.bosk.defang.instrumentation.MethodKey;
 import works.bosk.defang.runtime.InstrumentationMethod;
+import works.bosk.defang.runtime.InstrumentedParameter;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -45,8 +46,8 @@ public class TransformerTest {
             throw new NotEntitledException("nope");
         }
 
-        @InstrumentationMethod(className = "works.bosk.defang.agent.TransformerTest$ClassToInstrument")
-        public static void hello2(Object receiver) {
+        @InstrumentationMethod
+        public static void hello2(@InstrumentedParameter(className = "works.bosk.defang.agent.TransformerTest$ClassToInstrument") Object receiver) {
             throw new NotEntitledException("nope2");
         }
 
@@ -66,8 +67,8 @@ public class TransformerTest {
 
         assertEquals(
                 ClassToInstrument.class.getName(),
-                Config.class.getDeclaredMethod("hello2", Object.class).getAnnotation(InstrumentationMethod.class).className(),
-                "Bad test! @InstrumentedMethod annotation must specify the right class name!");
+                Config.class.getDeclaredMethod("hello2", Object.class).getParameters()[0].getAnnotation(InstrumentedParameter.class).className(),
+                "Bad test! @InstrumentedParameter annotation must specify the right class name!");
 
         MethodKey k1 = MethodKey.forTargetMethod(ClassToInstrument.class.getMethod("hello"));
         Method v1 = Config.class.getMethod("hello", Helloable.class);

@@ -2,6 +2,7 @@ package works.bosk.defang.runtime.config;
 
 import works.bosk.defang.runtime.EntitlementChecks;
 import works.bosk.defang.runtime.InstrumentationMethod;
+import works.bosk.defang.runtime.InstrumentedParameter;
 
 import java.io.InputStream;
 import java.io.PrintStream;
@@ -39,8 +40,8 @@ public class SystemMethods {
     /**
      * TODO: test
      */
-    @InstrumentationMethod(isStatic = true, className="java.lang.Shutdown")
-    public static void halt(Object shutdown, int status) {
+    @InstrumentationMethod(isStatic = true)
+    public static void halt(@InstrumentedParameter(className = "java.lang.Shutdown") Object shutdown, int status) {
         EntitlementChecks.checkFlagEntitlement(EXIT);
     }
 }

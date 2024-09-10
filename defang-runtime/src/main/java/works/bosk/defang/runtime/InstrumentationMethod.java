@@ -22,18 +22,10 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
  * For a non-static method, the first argument will be the receiver object at runtime;
  * for a static method, the first argument will be null.
  *
- * @see #className()
+ * @see InstrumentedParameter
  */
 @Target(METHOD)
 @Retention(RUNTIME)
 public @interface InstrumentationMethod {
-    /**
-     * For classes that are not accessible from the {@code config} classes,
-     * specify the name here, in the format returned by {@link Class#getName()}.
-     * In that case, the first parameter of the instrumentation method should
-     * be a superclass; {@code Object} is often a good choice.
-     */
-    String className() default "";
-
     boolean isStatic() default false;
 }
