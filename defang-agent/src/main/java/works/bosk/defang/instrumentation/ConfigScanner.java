@@ -25,8 +25,15 @@ public class ConfigScanner {
                     throw new IllegalStateException("Instrumentation method's parameters should include at least the "
                             + (im.isStatic()? "receiver object" : "declaring class"));
                 }
-                methods.put(MethodKey.forCorrespondingTargetMethod(instrumentationMethod, im.isStatic()), instrumentationMethod);
-                classesToInstrument.add(instrumentationMethod.getParameterTypes()[0]);
+                MethodKey key = MethodKey.forCorrespondingTargetMethod(instrumentationMethod, im.isStatic());
+                methods.put(key, instrumentationMethod);
+                Class<?> classToInstrument;
+                try {
+                    classToInstrument = Class.forName(key.className().replace('/','.'));
+                } catch (ClassNotFoundException e) {
+                    throw new IllegalStateException(e);
+                }
+                classesToInstrument.add(classToInstrument);
             }
         }
         return new ScanResults(methods, classesToInstrument);
