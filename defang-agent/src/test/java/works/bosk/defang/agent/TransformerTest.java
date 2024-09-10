@@ -12,7 +12,6 @@ import works.bosk.defang.runtime.InstrumentedParameter;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.Set;
 
@@ -38,6 +37,8 @@ public class TransformerTest {
         public static String staticHello() {
             return "static world";
         }
+
+        public static native String hello0();
     }
 
     public static class Config {
@@ -55,6 +56,11 @@ public class TransformerTest {
         public static void staticHello(Helloable declaringClass) {
             throw new NotEntitledException("nuh uh");
         }
+
+        @InstrumentationMethod(isStatic = true)
+        public static void hello0(Helloable declaringClass) {
+            throw new NotEntitledException("denied");
+        }
     }
 
     @Test
@@ -70,16 +76,11 @@ public class TransformerTest {
                 Config.class.getDeclaredMethod("hello2", Object.class).getParameters()[0].getAnnotation(InstrumentedParameter.class).className(),
                 "Bad test! @InstrumentedParameter annotation must specify the right class name!");
 
-        MethodKey k1 = MethodKey.forTargetMethod(ClassToInstrument.class.getMethod("hello"));
-        Method v1 = Config.class.getMethod("hello", Helloable.class);
-        MethodKey k2 = MethodKey.forTargetMethod(ClassToInstrument.class.getMethod("hello2"));
-        Method v2 = Config.class.getMethod("hello2", Object.class);
-        MethodKey k3 = MethodKey.forTargetMethod(ClassToInstrument.class.getMethod("staticHello"));
-        Method v3 = Config.class.getMethod("staticHello", Helloable.class);
         var transformer = new Transformer(new Instrumenter("_NEW", Map.of(
-                k1, v1,
-                k2, v2,
-                k3, v3
+                MethodKey.forTargetMethod(ClassToInstrument.class.getMethod("hello")), Config.class.getMethod("hello", Helloable.class),
+                MethodKey.forTargetMethod(ClassToInstrument.class.getMethod("hello2")), Config.class.getMethod("hello2", Object.class),
+                MethodKey.forTargetMethod(ClassToInstrument.class.getMethod("staticHello")), Config.class.getMethod("staticHello", Helloable.class),
+                MethodKey.forTargetMethod(ClassToInstrument.class.getMethod("hello0")), Config.class.getMethod("hello0", Helloable.class)
         )), Set.of(Type.getInternalName(ClassToInstrument.class)));
         var classFileName = "/" + Type.getInternalName(ClassToInstrument.class) + ".class";
         byte[] oldBytecode;
@@ -112,12 +113,29 @@ public class TransformerTest {
         assertThrows(NotEntitledException.class, newInstance::hello);
         assertThrows(NotEntitledException.class, newInstance::hello2);
         assertThrows(NotEntitledException.class, () -> callStaticHello(newClass));
+        assertThrows(NotEntitledException.class, () -> callHello0(newClass));
     }
 
     private static String callStaticHello(Class<?> c) throws NoSuchMethodException, IllegalAccessException {
         try {
             return (String) c
                     .getMethod("staticHello")
+                    .invoke(null);
+        } catch (InvocationTargetException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof NotEntitledException n) {
+                // Sometimes we're expecting this one!
+                throw n;
+            } else {
+                throw new AssertionError(cause);
+            }
+        }
+    }
+
+    private static String callHello0(Class<?> c) throws NoSuchMethodException, IllegalAccessException {
+        try {
+            return (String) c
+                    .getMethod("hello0")
                     .invoke(null);
         } catch (InvocationTargetException e) {
             Throwable cause = e.getCause();

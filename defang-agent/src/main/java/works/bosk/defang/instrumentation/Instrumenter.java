@@ -76,33 +76,50 @@ public class Instrumenter {
 
         @Override
         public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
-            var mv = super.visitMethod(access, name, descriptor, signature, exceptions);
+            var targetMethod = new EntitlementMethodVisitor.MethodInfo(access, className, name, descriptor);
             boolean isStatic = (access & ACC_STATIC) != 0;
-            boolean isNative = (access & ACC_NATIVE) != 0;
             var voidDescriptor = Type.getMethodDescriptor(Type.VOID_TYPE, Type.getArgumentTypes(descriptor));
             var key = new MethodKey(className, name, voidDescriptor, isStatic);
             var instrumentationMethod = instrumentationMethods.get(key);
             if (instrumentationMethod != null) {
-                LOGGER.debug("Will instrument {}{}method {}", isStatic? "static ":"", isNative? "native ":"", key);
-                return new EntitlementMethodVisitor(Opcodes.ASM9, mv, access, descriptor, instrumentationMethod);
+                if ((access & ACC_NATIVE) != 0) {
+                    LOGGER.debug("Will instrument native {}method {}", isStatic? "static ":"", key);
+                    // We're effectively generating a method that wasn't there before, so we must take matters into our own hands
+                    var mv = super.visitMethod(access & ~ACC_NATIVE, name, descriptor, signature, exceptions);
+                    EntitlementMethodVisitor v = new EntitlementMethodVisitor(Opcodes.ASM9, mv, targetMethod, instrumentationMethod);
+                    v.visitCode();
+                    v.visitMaxs(0,0);
+
+                    // Now generate the native method stub
+                    // Note: to try without the stub, return null instead
+                    return super.visitMethod(access, NATIVE_METHOD_PREFIX + name, descriptor, signature, exceptions);
+                } else {
+                    LOGGER.debug("Will instrument {}method {}", isStatic? "static ":"", key);
+                    // Process the method normally, prepending to its bytecode
+                    var mv = super.visitMethod(access, name, descriptor, signature, exceptions);
+                    return new EntitlementMethodVisitor(Opcodes.ASM9, mv, targetMethod, instrumentationMethod);
+                }
             } else {
                 LOGGER.trace("Will not instrument method {}", key);
+                return super.visitMethod(access, name, descriptor, signature, exceptions);
             }
-            return mv;
         }
     }
 
     static class EntitlementMethodVisitor extends MethodVisitor {
-        private final boolean instrumentedMethodIsStatic;
-        private final boolean instrumentedMethodIsNative;
-        private final String instrumentedMethodDescriptor;
+        private final MethodInfo targetMethod;
         private final Method instrumentationMethod;
 
-        EntitlementMethodVisitor(int api, MethodVisitor methodVisitor, int access, String instrumentedMethodDescriptor, Method instrumentationMethod) {
+        public record MethodInfo (
+            int access,
+            String className,
+            String name,
+            String descriptor
+        ){}
+
+        EntitlementMethodVisitor(int api, MethodVisitor methodVisitor, MethodInfo targetMethod, Method instrumentationMethod) {
             super(api, methodVisitor);
-            this.instrumentedMethodIsStatic = (access & ACC_STATIC) != 0;
-            this.instrumentedMethodIsNative = (access & ACC_NATIVE) != 0;
-            this.instrumentedMethodDescriptor = instrumentedMethodDescriptor;
+            this.targetMethod = targetMethod;
             this.instrumentationMethod = instrumentationMethod;
         }
 
@@ -115,8 +132,10 @@ public class Instrumenter {
         public void visitCode() {
             forwardIncomingArguments();
             invokeInstrumentationMethod();
-            if (instrumentedMethodIsNative) {
+            if ((targetMethod.access & ACC_NATIVE) != 0) {
+                forwardIncomingArguments();
                 invokeNativeMethod();
+                visitInsn(Type.getReturnType(targetMethod.descriptor).getOpcode(Opcodes.IRETURN));
             } else {
                 super.visitCode();
             }
@@ -124,14 +143,14 @@ public class Instrumenter {
 
         private void forwardIncomingArguments() {
             int localVarIndex = 0;
-            if (instrumentedMethodIsStatic) {
+            if ((targetMethod.access & ACC_STATIC) != 0) {
                 // To keep things consistent between static and virtual methods, we pass a null in here,
                 // analogous to how Field and Method accept nulls for static fields/methods.
                 mv.visitInsn(Opcodes.ACONST_NULL);
             } else {
                 mv.visitVarInsn(Opcodes.ALOAD, localVarIndex++);
             }
-            for (Type type : Type.getArgumentTypes(instrumentedMethodDescriptor)) {
+            for (Type type : Type.getArgumentTypes(targetMethod.descriptor)) {
                 mv.visitVarInsn(type.getOpcode(Opcodes.ILOAD), localVarIndex);
                 localVarIndex += type.getSize();
             }
@@ -148,20 +167,20 @@ public class Instrumenter {
         }
 
         private void invokeNativeMethod() {
-            if (instrumentedMethodIsStatic) {
+            if ((targetMethod.access & ACC_STATIC) != 0) {
                 mv.visitMethodInsn(
                         INVOKESTATIC,
-                        Type.getInternalName(instrumentationMethod.getDeclaringClass()),
-                        NATIVE_METHOD_PREFIX + instrumentationMethod.getName(),
-                        Type.getMethodDescriptor(instrumentationMethod),
+                        targetMethod.className,
+                        NATIVE_METHOD_PREFIX + targetMethod.name,
+                        targetMethod.descriptor,
                         false);
             } else {
                 mv.visitVarInsn(Opcodes.ALOAD, 0);
                 mv.visitMethodInsn(
                         INVOKEVIRTUAL,
-                        Type.getInternalName(instrumentationMethod.getDeclaringClass()),
-                        NATIVE_METHOD_PREFIX + instrumentationMethod.getName(),
-                        Type.getMethodDescriptor(instrumentationMethod),
+                        targetMethod.className,
+                        NATIVE_METHOD_PREFIX + targetMethod.name,
+                        targetMethod.descriptor,
                         false);
             }
         }

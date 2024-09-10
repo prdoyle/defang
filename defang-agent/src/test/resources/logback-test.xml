@@ -12,6 +12,7 @@
     </appender>
 
     <!--
+    <logger name="works.bosk.defang.agent.Transformer" level="TRACE"/>
     <logger name="works.bosk.defang.instrumentation.ConfigScanner" level="DEBUG"/>
     -->
 
