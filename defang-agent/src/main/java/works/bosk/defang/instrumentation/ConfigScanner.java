@@ -1,7 +1,8 @@
 package works.bosk.defang.instrumentation;
 
-import works.bosk.defang.runtime.InstanceMethod;
-import works.bosk.defang.runtime.StaticMethod;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import works.bosk.defang.runtime.InstrumentationMethod;
 
 import java.lang.reflect.Method;
 import java.util.HashMap;
@@ -15,16 +16,17 @@ public class ConfigScanner {
         var methods = new HashMap<MethodKey, Method>();
         for (var config : configClasses) {
             for (Method instrumentationMethod : config.getDeclaredMethods()) {
-                InstanceMethod im = instrumentationMethod.getAnnotation(InstanceMethod.class);
-                StaticMethod sm = instrumentationMethod.getAnnotation(StaticMethod.class);
-                if (im == null && sm == null) {
+                InstrumentationMethod im = instrumentationMethod.getAnnotation(InstrumentationMethod.class);
+                if (im == null) {
+                    LOGGER.trace("Skipping method " + instrumentationMethod);
                     continue;
                 }
                 if (instrumentationMethod.getParameterTypes().length < 1) {
                     throw new IllegalStateException("Instrumentation method's parameters should include at least the "
-                            + ((im != null)? "receiver object" : "declaring class"));
+                            + (im.isStatic()? "receiver object" : "declaring class"));
                 }
-                methods.put(MethodKey.forCorrespondingTargetMethod(instrumentationMethod, sm != null), instrumentationMethod);
+                String targetClassName = instrumentationMethod.getParameterTypes()[0].getName();
+                methods.put(MethodKey.forCorrespondingTargetMethod(targetClassName, instrumentationMethod, im.isStatic()), instrumentationMethod);
                 classesToInstrument.add(instrumentationMethod.getParameterTypes()[0]);
             }
         }
@@ -33,4 +35,6 @@ public class ConfigScanner {
 
     public record ScanResults(Map<MethodKey, Method> instrumentationMethods, Set<Class<?>> classesToInstrument) {
     }
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(ConfigScanner.class);
 }

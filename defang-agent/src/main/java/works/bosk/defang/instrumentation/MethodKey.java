@@ -22,8 +22,7 @@ public record MethodKey(
                 Modifier.isStatic(targetMethod.getModifiers()));
     }
 
-    public static MethodKey forCorrespondingTargetMethod(Method instrumentationMethod, boolean isStatic) {
-        Class<?> targetClass = instrumentationMethod.getParameterTypes()[0];
+    public static MethodKey forCorrespondingTargetMethod(String className, Method instrumentationMethod, boolean isStatic) {
         Type[] targetParameters = Stream.of(instrumentationMethod.getParameterTypes())
                 .skip(1)
                 .map(Type::getType)
@@ -33,7 +32,7 @@ public record MethodKey(
                 targetParameters
         );
         return new MethodKey(
-                Type.getInternalName(targetClass),
+                className.replace('.','/'),
                 instrumentationMethod.getName(),
                 targetDescriptor,
                 isStatic);

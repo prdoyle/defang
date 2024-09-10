@@ -7,8 +7,7 @@ import org.slf4j.LoggerFactory;
 import works.bosk.defang.api.NotEntitledException;
 import works.bosk.defang.instrumentation.Instrumenter;
 import works.bosk.defang.instrumentation.MethodKey;
-import works.bosk.defang.runtime.InstanceMethod;
-import works.bosk.defang.runtime.StaticMethod;
+import works.bosk.defang.runtime.InstrumentationMethod;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -36,12 +35,12 @@ public class TransformerTest {
     }
 
     public static class Config {
-        @InstanceMethod
+        @InstrumentationMethod
         public static void hello(Helloable receiver) {
             throw new NotEntitledException("nope");
         }
 
-        @StaticMethod
+        @InstrumentationMethod(isStatic = true)
         public static void staticHello(Helloable declaringClass) {
             throw new NotEntitledException("nuh uh");
         }

@@ -1,17 +1,15 @@
 package works.bosk.defang.runtime.config;
 
 import works.bosk.defang.runtime.EntitlementChecks;
-import works.bosk.defang.runtime.InstanceMethod;
-
-import java.lang.reflect.Method;
+import works.bosk.defang.runtime.InstrumentationMethod;
 
 public class ReflectionMethods {
-    @InstanceMethod
+    @InstrumentationMethod
     public static void getDeclaredMethod(Class<?> c, String name, Class<?>... parameterTypes) {
         EntitlementChecks.checkReflectionEntitlement();
     }
 
-    @InstanceMethod
+    @InstrumentationMethod
     public static void getDeclaredMethods(Class<?> c) {
         EntitlementChecks.checkReflectionEntitlement();
     }
