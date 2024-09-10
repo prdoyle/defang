@@ -25,7 +25,14 @@ public class ConfigScanner {
                     throw new IllegalStateException("Instrumentation method's parameters should include at least the "
                             + (im.isStatic()? "receiver object" : "declaring class"));
                 }
-                String targetClassName = instrumentationMethod.getParameterTypes()[0].getName();
+                String targetClassName;
+                if ("".equals(im.className())) {
+                    targetClassName = instrumentationMethod.getParameterTypes()[0].getName();
+                    LOGGER.trace("Taking target class name from first parameter: " + targetClassName);
+                } else {
+                    targetClassName = im.className();
+                    LOGGER.trace("Taking target class name from annotation: " + targetClassName);
+                }
                 methods.put(MethodKey.forCorrespondingTargetMethod(targetClassName, instrumentationMethod, im.isStatic()), instrumentationMethod);
                 classesToInstrument.add(instrumentationMethod.getParameterTypes()[0]);
             }

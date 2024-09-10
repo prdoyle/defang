@@ -22,11 +22,16 @@ import static works.bosk.defang.agent.ASMUtils.bytecode2text;
 public class TransformerTest {
     public interface Helloable {
         String hello();
+        String hello2();
     }
 
     public static class ClassToInstrument implements Helloable {
         public String hello() {
             return "world";
+        }
+
+        public String hello2() {
+            return "world2";
         }
 
         public static String staticHello() {
@@ -38,6 +43,11 @@ public class TransformerTest {
         @InstrumentationMethod
         public static void hello(Helloable receiver) {
             throw new NotEntitledException("nope");
+        }
+
+        @InstrumentationMethod(className = "works.bosk.defang.agent.TransformerTest$ClassToInstrument")
+        public static void hello2(Object receiver) {
+            throw new NotEntitledException("nope2");
         }
 
         @InstrumentationMethod(isStatic = true)
@@ -54,14 +64,22 @@ public class TransformerTest {
         // with slightly different signatures (using the common interface Helloable) which
         // is not what would happen when it's run by the agent.
 
+        assertEquals(
+                ClassToInstrument.class.getName(),
+                Config.class.getDeclaredMethod("hello2", Object.class).getAnnotation(InstrumentationMethod.class).className(),
+                "Bad test! @InstrumentedMethod annotation must specify the right class name!");
+
         MethodKey k1 = MethodKey.forTargetMethod(ClassToInstrument.class.getMethod("hello"));
         Method v1 = Config.class.getMethod("hello", Helloable.class);
-        MethodKey k2 = MethodKey.forTargetMethod(ClassToInstrument.class.getMethod("staticHello"));
-        Method v2 = Config.class.getMethod("staticHello", Helloable.class);
+        MethodKey k2 = MethodKey.forTargetMethod(ClassToInstrument.class.getMethod("hello2"));
+        Method v2 = Config.class.getMethod("hello2", Object.class);
+        MethodKey k3 = MethodKey.forTargetMethod(ClassToInstrument.class.getMethod("staticHello"));
+        Method v3 = Config.class.getMethod("staticHello", Helloable.class);
         var transformer = new Transformer(new Instrumenter("_NEW", Map.of(
-                                k1, v1,
-                                k2, v2
-                        )), Set.of(Type.getInternalName(ClassToInstrument.class)));
+                k1, v1,
+                k2, v2,
+                k3, v3
+        )), Set.of(Type.getInternalName(ClassToInstrument.class)));
         var classFileName = "/" + Type.getInternalName(ClassToInstrument.class) + ".class";
         byte[] oldBytecode;
         try (var stream = ClassToInstrument.class.getResourceAsStream(classFileName)) {
@@ -86,10 +104,12 @@ public class TransformerTest {
         Class<?> newClass = new TestLoader(Helloable.class.getClassLoader()).defineClassFromBytes(ClassToInstrument.class.getName() + "_NEW", newBytecode);
 
         assertEquals("world", new ClassToInstrument().hello());
+        assertEquals("world2", new ClassToInstrument().hello2());
         assertEquals("static world", ClassToInstrument.staticHello());
         assertEquals("static world", callStaticHello(ClassToInstrument.class));
         Helloable newInstance = (Helloable) newClass.getConstructor().newInstance();
         assertThrows(NotEntitledException.class, newInstance::hello);
+        assertThrows(NotEntitledException.class, newInstance::hello2);
         assertThrows(NotEntitledException.class, () -> callStaticHello(newClass));
     }
 
