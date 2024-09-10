@@ -37,8 +37,6 @@ public class TransformerTest {
         public static String staticHello() {
             return "static world";
         }
-
-        public static native String hello0();
     }
 
     public static class Config {
@@ -55,11 +53,6 @@ public class TransformerTest {
         @InstrumentationMethod(isStatic = true)
         public static void staticHello(Helloable declaringClass) {
             throw new NotEntitledException("nuh uh");
-        }
-
-        @InstrumentationMethod(isStatic = true)
-        public static void hello0(Helloable declaringClass) {
-            throw new NotEntitledException("denied");
         }
     }
 
@@ -79,8 +72,7 @@ public class TransformerTest {
         var transformer = new Transformer(new Instrumenter("_NEW", Map.of(
                 MethodKey.forTargetMethod(ClassToInstrument.class.getMethod("hello")), Config.class.getMethod("hello", Helloable.class),
                 MethodKey.forTargetMethod(ClassToInstrument.class.getMethod("hello2")), Config.class.getMethod("hello2", Object.class),
-                MethodKey.forTargetMethod(ClassToInstrument.class.getMethod("staticHello")), Config.class.getMethod("staticHello", Helloable.class),
-                MethodKey.forTargetMethod(ClassToInstrument.class.getMethod("hello0")), Config.class.getMethod("hello0", Helloable.class)
+                MethodKey.forTargetMethod(ClassToInstrument.class.getMethod("staticHello")), Config.class.getMethod("staticHello", Helloable.class)
         )), Set.of(Type.getInternalName(ClassToInstrument.class)));
         var classFileName = "/" + Type.getInternalName(ClassToInstrument.class) + ".class";
         byte[] oldBytecode;
@@ -113,7 +105,6 @@ public class TransformerTest {
         assertThrows(NotEntitledException.class, newInstance::hello);
         assertThrows(NotEntitledException.class, newInstance::hello2);
         assertThrows(NotEntitledException.class, () -> callStaticHello(newClass));
-        assertThrows(NotEntitledException.class, () -> callHello0(newClass));
     }
 
     private static String callStaticHello(Class<?> c) throws NoSuchMethodException, IllegalAccessException {

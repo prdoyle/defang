@@ -77,6 +77,9 @@ public class Instrumenter {
         @Override
         public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
             var targetMethod = new EntitlementMethodVisitor.MethodInfo(access, className, name, descriptor);
+            if ((access & ACC_NATIVE) != 0) {
+                throw new IllegalStateException("Cannot instrument native method: " + targetMethod);
+            }
             boolean isStatic = (access & ACC_STATIC) != 0;
             var voidDescriptor = Type.getMethodDescriptor(Type.VOID_TYPE, Type.getArgumentTypes(descriptor));
             var key = new MethodKey(className, name, voidDescriptor, isStatic);
