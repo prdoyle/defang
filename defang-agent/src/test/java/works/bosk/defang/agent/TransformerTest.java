@@ -42,17 +42,17 @@ public class TransformerTest {
 
     public static class Config {
         @InstrumentationMethod
-        public static void hello(Helloable receiver) {
+        public static void hello(Class<?> callerClass, Helloable receiver) {
             throw new NotEntitledException("nope");
         }
 
         @InstrumentationMethod
-        public static void hello2(@InstrumentedParameter(className = "works.bosk.defang.agent.TransformerTest$ClassToInstrument") Object receiver) {
+        public static void hello2(Class<?> callerClass, @InstrumentedParameter(className = "works.bosk.defang.agent.TransformerTest$ClassToInstrument") Object receiver) {
             throw new NotEntitledException("nope2");
         }
 
         @InstrumentationMethod(isStatic = true)
-        public static void staticHello(Helloable declaringClass) {
+        public static void staticHello(Class<?> callerClass, Helloable declaringClass) {
             throw new NotEntitledException("nuh uh");
         }
     }
@@ -67,15 +67,15 @@ public class TransformerTest {
 
         assertEquals(
                 ClassToInstrument.class.getName(),
-                Config.class.getDeclaredMethod("hello2", Object.class).getParameters()[0].getAnnotation(InstrumentedParameter.class).className(),
+                Config.class.getDeclaredMethod("hello2", Class.class, Object.class).getParameters()[1].getAnnotation(InstrumentedParameter.class).className(),
                 "Bad test! @InstrumentedParameter annotation must specify the right class name!");
 
         MethodKey k1 = MethodKey.forTargetMethod(ClassToInstrument.class.getMethod("hello"));
-        Method v1 = Config.class.getMethod("hello", Helloable.class);
+        Method v1 = Config.class.getMethod("hello", Class.class, Helloable.class);
         MethodKey k2 = MethodKey.forTargetMethod(ClassToInstrument.class.getMethod("hello2"));
-        Method v2 = Config.class.getMethod("hello2", Object.class);
+        Method v2 = Config.class.getMethod("hello2", Class.class, Object.class);
         MethodKey k3 = MethodKey.forTargetMethod(ClassToInstrument.class.getMethod("staticHello"));
-        Method v3 = Config.class.getMethod("staticHello", Helloable.class);
+        Method v3 = Config.class.getMethod("staticHello", Class.class, Helloable.class);
         var transformer = new Transformer(new Instrumenter("_NEW", Map.of(
                 k1, v1,
                 k2, v2,

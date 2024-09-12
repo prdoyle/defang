@@ -28,9 +28,9 @@ public record MethodKey(
 
     public static MethodKey forCorrespondingTargetMethod(Method instrumentationMethod, boolean isStatic) {
         LOGGER.trace("Instrumentation method " + instrumentationMethod);
-        Type declaringType = parameterType(instrumentationMethod.getParameters()[0]);
+        Type declaringType = parameterType(instrumentationMethod.getParameters()[1]);
         Type[] targetParameters = Stream.of(instrumentationMethod.getParameters())
-                .skip(1)
+                .skip(2)
                 .map(MethodKey::parameterType)
                 .toArray(Type[]::new);
         String targetDescriptor = Type.getMethodDescriptor(

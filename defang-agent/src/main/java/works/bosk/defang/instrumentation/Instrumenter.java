@@ -113,7 +113,7 @@ public class Instrumenter {
 
         @Override
         public void visitCode() {
-//            pushCallerClass();
+            pushCallerClass();
             forwardIncomingArguments();
             invokeInstrumentationMethod();
             super.visitCode();

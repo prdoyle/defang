@@ -12,22 +12,22 @@ import static works.bosk.defang.api.FlagEntitlement.SET_SYSTEM_FILES;
 
 public class SystemMethods {
     @InstrumentationMethod(isStatic = true)
-    public static void setIn(System system, InputStream in) {
-        EntitlementChecks.checkFlagEntitlement(SET_SYSTEM_FILES);
+    public static void setIn(Class<?> callerClass, System system, InputStream in) {
+        EntitlementChecks.checkFlagEntitlement(callerClass, SET_SYSTEM_FILES);
     }
 
     @InstrumentationMethod(isStatic = true)
-    public static void setOut(System system, PrintStream out) {
-        EntitlementChecks.checkFlagEntitlement(SET_SYSTEM_FILES);
+    public static void setOut(Class<?> callerClass, System system, PrintStream out) {
+        EntitlementChecks.checkFlagEntitlement(callerClass, SET_SYSTEM_FILES);
     }
 
     @InstrumentationMethod(isStatic = true)
-    public static void setErr(System system, PrintStream err) {
-        EntitlementChecks.checkFlagEntitlement(SET_SYSTEM_FILES);
+    public static void setErr(Class<?> callerClass, System system, PrintStream err) {
+        EntitlementChecks.checkFlagEntitlement(callerClass, SET_SYSTEM_FILES);
     }
 
     @InstrumentationMethod(isStatic = true)
-    public static void halt(@InstrumentedParameter(className = "java.lang.Shutdown") Object shutdown, int status) {
-        EntitlementChecks.checkFlagEntitlement(EXIT);
+    public static void halt(Class<?> callerCLass, @InstrumentedParameter(className = "java.lang.Shutdown") Object shutdown, int status) {
+        EntitlementChecks.checkFlagEntitlement(callerCLass, EXIT);
     }
 }

@@ -21,9 +21,12 @@ public class ConfigScanner {
                     LOGGER.trace("Skipping method " + instrumentationMethod);
                     continue;
                 }
-                if (instrumentationMethod.getParameterTypes().length < 1) {
-                    throw new IllegalStateException("Instrumentation method's parameters should include at least the "
+                if (instrumentationMethod.getParameterTypes().length < 2) {
+                    throw new IllegalStateException("Instrumentation method's parameters should include at least the caller class and "
                             + (im.isStatic()? "receiver object" : "declaring class"));
+                }
+                if (!instrumentationMethod.getParameterTypes()[0].equals(Class.class)) {
+                    throw new IllegalStateException("First parameter of instrumentation method should be the caller class");
                 }
                 MethodKey key = MethodKey.forCorrespondingTargetMethod(instrumentationMethod, im.isStatic());
                 methods.put(key, instrumentationMethod);

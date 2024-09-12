@@ -57,6 +57,7 @@ public class AgentTest {
 
     @Test
     public void exit_throws() {
+        // This one is its own test method because if it fails, it's particularly disruptive
         assertThrows(NotEntitledException.class, () -> System.exit(123));
     }
 

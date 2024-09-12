@@ -50,7 +50,12 @@ public class EntitlementChecks {
         };
     }
 
-    private static Module requestingModule(int additionalFramesToSkip) {
+    private static Module requestingModule(Class<?> callerClass, int additionalFramesToSkip) {
+        Module callerModule = callerClass.getModule();
+        if (callerModule.getLayer() != ModuleLayer.boot()) {
+            // fast path
+            return callerModule;
+        }
         int framesToSkip =
                  1  // getCallingClass (this method)
                 +1  // the checkXxx method
@@ -69,8 +74,8 @@ public class EntitlementChecks {
         return !isActive || (requestingModule == null) || requestingModule == EntitlementChecks.class.getModule();
     }
 
-    public static void checkFileEntitlement(File file, OperationKind operation) {
-        var requestingModule = requestingModule(0);
+    public static void checkFileEntitlement(Class<?> callerClass, File file, OperationKind operation) {
+        var requestingModule = requestingModule(callerClass, 0);
         if (isTriviallyAllowed(requestingModule)) {
             return;
         }
@@ -83,8 +88,8 @@ public class EntitlementChecks {
                 + operation + " \"" + file + "\"");
     }
 
-    public static void checkReflectionEntitlement() {
-        var requestingModule = requestingModule(0);
+    public static void checkReflectionEntitlement(Class<?> callerClass) {
+        var requestingModule = requestingModule(callerClass, 0);
         if (isTriviallyAllowed(requestingModule)) {
             return;
         }
@@ -96,8 +101,8 @@ public class EntitlementChecks {
         throw new NotEntitledException("Missing reflection entitlement for " + requestingModule);
     }
 
-    public static void checkFlagEntitlement(FlagEntitlement flag) {
-        var requestingModule = requestingModule(0);
+    public static void checkFlagEntitlement(Class<?> callerClass, FlagEntitlement flag) {
+        var requestingModule = requestingModule(callerClass, 0);
         if (isTriviallyAllowed(requestingModule)) {
             return;
         }
